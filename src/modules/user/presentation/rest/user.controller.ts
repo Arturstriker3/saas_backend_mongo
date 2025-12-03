@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param } from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
 import { Inject } from '@nestjs/common';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
 import { ListUsersUseCase } from '../../application/use-cases/list-users.use-case';
@@ -9,7 +10,8 @@ import { DeactivateUserUseCase } from '../../application/use-cases/deactivate-us
 import { CreateUserBody, ChangeUserNameBody, ChangeUserPasswordBody } from './user.dto';
 import { UserEntity } from '../../domain/user.entity';
 
-@Controller('users')
+@ApiTags("Users")
+@Controller("users")
 export class UserController {
   constructor(
     @Inject(CreateUserUseCase) private readonly createUseCase: CreateUserUseCase,

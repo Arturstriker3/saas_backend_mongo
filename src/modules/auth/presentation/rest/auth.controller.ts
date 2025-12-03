@@ -1,4 +1,5 @@
 import { Controller, Post, Body } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import {
   LoginBody,
@@ -13,6 +14,7 @@ import { RequestPasswordResetUseCase } from '../../application/use-cases/request
 import { ConfirmPasswordResetUseCase } from '../../application/use-cases/confirm-password-reset.use-case';
 import { UserEntity } from '../../../user/domain/user.entity';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(

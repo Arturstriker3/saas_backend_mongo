@@ -4,12 +4,12 @@ import { UserEntity, USER_CONSTANTS } from '../../domain/user.entity';
 import { ROLES } from '../../../role/domain/role.types';
 
 export const CreateUserDTO = z.object({
-  name: z.string().min(USER_CONSTANTS.NAME_MIN_LENGTH),
-  email: z.string().email(),
+  name: z.string().min(USER_CONSTANTS.NAME_MIN_LENGTH).max(USER_CONSTANTS.NAME_MAX_LENGTH),
+  email: z.string().email().max(USER_CONSTANTS.EMAIL_MAX_LENGTH),
   passwordHash: z.string().min(USER_CONSTANTS.PASSWORD_HASH_MIN_LENGTH),
   birthDate: z.coerce.date(),
   role: z.enum(ROLES),
-  credits: z.number().min(USER_CONSTANTS.CREDITS_MIN),
+  credits: z.number().min(USER_CONSTANTS.CREDITS_MIN).max(USER_CONSTANTS.CREDITS_MAX),
 });
 
 export type CreateUserInputDTO = z.infer<typeof CreateUserDTO>;
