@@ -1,0 +1,34 @@
+import * as dotenv from "dotenv";
+import { z } from "zod";
+
+dotenv.config();
+
+const EnvSchema = z.object({
+  NODE_ENV: z.string().default("development"),
+  PORT: z.string().default("3000"),
+  SKIP_DB_CONNECT: z.string().default("false"),
+  MONGO_URI: z.string().default("mongodb://localhost:27017"),
+  MONGO_DB_NAME: z.string().default("saas_backend"),
+  JWT_SECRET: z.string().default("changeme"),
+  JWT_EXPIRES_IN: z.string().default("900s"),
+  REFRESH_TOKEN_TTL: z.string().default("1209600"),
+  PASSWORD_RESET_TTL: z.string().default("1800"),
+  RESEND_API_KEY: z.string().default(""),
+  RESEND_FROM: z.string().default("onboarding@resend.dev"),
+  RUN_SEED_ON_STARTUP: z.string().default("false"),
+  SUPER_ADMIN_EMAIL: z.string().default("admin@example.com"),
+  SUPER_ADMIN_NAME: z.string().default("Super Admin"),
+  SUPER_ADMIN_PASSWORD: z.string().default("admin123")
+});
+
+export type AppEnv = z.infer<typeof EnvSchema>;
+
+let cachedEnv: AppEnv | null = null;
+
+export function loadEnv(): AppEnv {
+  if (cachedEnv) return cachedEnv;
+  const parsed = EnvSchema.parse(process.env);
+  cachedEnv = parsed;
+  return parsed;
+}
+
