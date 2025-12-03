@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { UserRepository } from '../../domain/user.repository';
 
-export const DeactivateUserDTO = z.object({ id: z.string().min(1) });
+export const DeactivateUserDTO = z.object({ uuid: z.string().min(1) });
 export type DeactivateUserInputDTO = z.infer<typeof DeactivateUserDTO>;
 
 export class DeactivateUserUseCase {
@@ -12,8 +12,8 @@ export class DeactivateUserUseCase {
   }
 
   async execute(input: DeactivateUserInputDTO) {
-    const { id } = DeactivateUserDTO.parse(input);
-    const user = await this.repo.findById(id);
+    const { uuid } = DeactivateUserDTO.parse(input);
+    const user = await this.repo.findById(uuid);
     if (!user) throw new Error('User not found');
     user.deactivate();
     await this.repo.save(user);

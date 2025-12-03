@@ -3,7 +3,7 @@ import { Role } from '../../../role/domain/role.types';
 export class CreateUserBody {
   name!: string;
   email!: string;
-  passwordHash!: string;
+  password!: string;
   birthDate!: Date;
   role!: Role;
   credits!: number;
@@ -14,5 +14,5 @@ export class ChangeUserNameBody {
 }
 
 export class ChangeUserPasswordBody {
-  newPasswordHash!: string;
+  newPassword!: string;
 }

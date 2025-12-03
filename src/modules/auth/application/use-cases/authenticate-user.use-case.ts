@@ -29,7 +29,7 @@ export class AuthenticateUserUseCase {
     if (!ok) throw new Error('Invalid credentials');
     const env = loadEnv();
     const accessToken = await this.jwt.signAsync(
-      { sub: user.id, role: user.role },
+      { sub: user.uuid, role: user.role },
       { expiresIn: parseInt(env.JWT_EXPIRES_IN, 10) },
     );
     const refreshToken = randomBytes(32).toString('hex');
@@ -37,7 +37,7 @@ export class AuthenticateUserUseCase {
     const expires = new Date(now.getTime() + parseInt(env.REFRESH_TOKEN_TTL, 10) * 1000);
     await this.tokens.save({
       token: refreshToken,
-      userId: user.id,
+      userId: user.uuid,
       createdAt: now,
       expiresAt: expires,
     });

@@ -5,11 +5,11 @@ import {
 } from '../../domain/password-reset.repository';
 import { UserRepository } from '../../../user/domain/user.repository';
 import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcrypt';
-import { UserEntity } from '../../../user/domain/user.entity';
+import { UserEntity, USER_CONSTANTS } from '../../../user/domain/user.entity';
 
 export const ConfirmPasswordResetDTO = z.object({
   token: z.string().min(1),
-  newPassword: z.string().min(8),
+  newPassword: z.string().min(USER_CONSTANTS.PASSWORD_MIN_LENGTH),
 });
 export type ConfirmPasswordResetInputDTO = z.infer<typeof ConfirmPasswordResetDTO>;
 

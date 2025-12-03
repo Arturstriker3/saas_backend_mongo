@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Body, Param } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
+import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
 import { ListUsersUseCase } from '../../application/use-cases/list-users.use-case';
@@ -10,8 +10,8 @@ import { DeactivateUserUseCase } from '../../application/use-cases/deactivate-us
 import { CreateUserBody, ChangeUserNameBody, ChangeUserPasswordBody } from './user.dto';
 import { UserEntity } from '../../domain/user.entity';
 
-@ApiTags("Users")
-@Controller("users")
+@ApiTags('Users')
+@Controller('users')
 export class UserController {
   constructor(
     @Inject(CreateUserUseCase) private readonly createUseCase: CreateUserUseCase,
@@ -35,36 +35,36 @@ export class UserController {
     return this.toJSON(entity);
   }
 
-  @Post(':id/activate')
-  async activate(@Param('id') id: string) {
-    const entity = await this.activateUseCase.execute({ id });
+  @Post(':uuid/activate')
+  async activate(@Param('uuid') uuid: string) {
+    const entity = await this.activateUseCase.execute({ uuid });
     return this.toJSON(entity);
   }
 
-  @Put(':id/name')
-  async changeName(@Param('id') id: string, @Body() body: ChangeUserNameBody) {
-    const entity = await this.changeNameUseCase.execute({ id, name: body.name });
+  @Put(':uuid/name')
+  async changeName(@Param('uuid') uuid: string, @Body() body: ChangeUserNameBody) {
+    const entity = await this.changeNameUseCase.execute({ uuid, name: body.name });
     return this.toJSON(entity);
   }
 
-  @Put(':id/password')
-  async changePassword(@Param('id') id: string, @Body() body: ChangeUserPasswordBody) {
+  @Put(':uuid/password')
+  async changePassword(@Param('uuid') uuid: string, @Body() body: ChangeUserPasswordBody) {
     const entity = await this.changePasswordUseCase.execute({
-      id,
-      newPasswordHash: body.newPasswordHash,
+      uuid,
+      newPassword: body.newPassword,
     });
     return this.toJSON(entity);
   }
 
-  @Post(':id/deactivate')
-  async deactivate(@Param('id') id: string) {
-    const entity = await this.deactivateUseCase.execute({ id });
+  @Post(':uuid/deactivate')
+  async deactivate(@Param('uuid') uuid: string) {
+    const entity = await this.deactivateUseCase.execute({ uuid });
     return this.toJSON(entity);
   }
 
   private toJSON(entity: UserEntity) {
     return {
-      id: entity.id,
+      uuid: entity.uuid,
       name: entity.name,
       email: entity.email,
       birthDate: entity.birthDate,

@@ -6,18 +6,17 @@ export const USER_CONSTANTS = {
   NAME_MAX_LENGTH: 100,
   EMAIL_MIN_LENGTH: 5,
   EMAIL_MAX_LENGTH: 254,
-  PASSWORD_HASH_MIN_LENGTH: 10,
   PASSWORD_MIN_LENGTH: 8,
   ROLE_DEFAULT: 'USER',
   IS_ACTIVE_DEFAULT: true,
   CREDITS_DEFAULT: 0,
   CREDITS_MIN: 0,
-  CREDITS_MAX: 99999,
+  CREDITS_MAX: 999999,
   BIRTHDATE_MIN: new Date('1900-01-01T00:00:00Z'),
 };
 
 export type UserEntity = Document & {
-  id: string;
+  uuid: string;
   name: string;
   email: string;
   passwordHash: string;
@@ -35,7 +34,7 @@ export type UserEntity = Document & {
 
 export function makeUserSchema() {
   const schema = new Schema<UserEntity>({
-    id: { type: String, unique: true, index: true, required: true },
+    uuid: { type: String, unique: true, index: true, required: true },
     name: {
       type: String,
       required: true,
@@ -84,7 +83,7 @@ export function makeUserSchema() {
   };
 
   schema.methods.changePassword = function (newHash: string) {
-    if (!newHash || newHash.length < USER_CONSTANTS.PASSWORD_HASH_MIN_LENGTH) return;
+    if (!newHash) return;
     this.passwordHash = newHash;
     this.updatedAt = new Date();
   };

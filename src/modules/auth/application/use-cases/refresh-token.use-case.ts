@@ -24,7 +24,7 @@ export class RefreshTokenUseCase {
     if (!user) throw new Error('User not found');
     const env = loadEnv();
     const accessToken = await this.jwt.signAsync(
-      { sub: user.id, role: user.role },
+      { sub: user.uuid, role: user.role },
       { expiresIn: parseInt(env.JWT_EXPIRES_IN, 10) },
     );
     const newRefresh = randomBytes(32).toString('hex');
@@ -33,7 +33,7 @@ export class RefreshTokenUseCase {
     await this.tokens.deleteByToken(refreshToken);
     await this.tokens.save({
       token: newRefresh,
-      userId: user.id,
+      userId: user.uuid,
       createdAt: now,
       expiresAt: expires,
     });

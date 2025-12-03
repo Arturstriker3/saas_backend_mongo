@@ -25,7 +25,7 @@ export class RequestPasswordResetUseCase {
     const expires = new Date(now.getTime() + parseInt(env.PASSWORD_RESET_TTL, 10) * 1000);
     await this.resets.save({
       token,
-      userId: String(user.id),
+      userId: String(user.uuid),
       createdAt: now,
       expiresAt: expires,
     });

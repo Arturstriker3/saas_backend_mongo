@@ -20,10 +20,10 @@ export class UserRepositoryMongo implements UserRepository {
     role: string;
     credits: number;
   }): Promise<UserEntity> {
-    const id = uuidv7();
+    const uuid = uuidv7();
     const now = new Date();
     const doc = await this.model.create({
-      id,
+      uuid,
       email: props.email.toLowerCase(),
       name: props.name.trim(),
       passwordHash: props.passwordHash,
@@ -43,7 +43,7 @@ export class UserRepositoryMongo implements UserRepository {
   }
 
   async findById(id: string): Promise<UserEntity | null> {
-    const doc = await this.model.findOne({ id }).select('+passwordHash');
+    const doc = await this.model.findOne({ uuid: id }).select('+passwordHash');
     return (doc as UserEntity) ?? null;
   }
 

@@ -12,10 +12,12 @@ import { ChangeUserPasswordUseCase } from './application/use-cases/change-user-p
 import { DeactivateUserUseCase } from './application/use-cases/deactivate-user.use-case';
 import { UserController } from './presentation/rest/user.controller';
 import { MONGO_CONNECTION, MongooseConnection } from '../../common/database/mongo.connection';
+import { BcryptPasswordHasher } from '../auth/infrastructure/password-hasher.bcrypt';
 
 @Module({
   imports: [DatabaseModule],
   providers: [
+    BcryptPasswordHasher,
     {
       provide: USER_MODEL,
       useFactory: (conn: MongooseConnection) => conn.model<UserEntity>('users', makeUserSchema()),
@@ -24,8 +26,9 @@ import { MONGO_CONNECTION, MongooseConnection } from '../../common/database/mong
     { provide: USER_REPOSITORY, useClass: UserRepositoryMongo },
     {
       provide: CreateUserUseCase,
-      useFactory: (repo: UserRepository) => new CreateUserUseCase(repo),
-      inject: [USER_REPOSITORY],
+      useFactory: (repo: UserRepository, hasher: BcryptPasswordHasher) =>
+        new CreateUserUseCase(repo, hasher),
+      inject: [USER_REPOSITORY, BcryptPasswordHasher],
     },
     {
       provide: ListUsersUseCase,
@@ -44,8 +47,9 @@ import { MONGO_CONNECTION, MongooseConnection } from '../../common/database/mong
     },
     {
       provide: ChangeUserPasswordUseCase,
-      useFactory: (repo: UserRepository) => new ChangeUserPasswordUseCase(repo),
-      inject: [USER_REPOSITORY],
+      useFactory: (repo: UserRepository, hasher: BcryptPasswordHasher) =>
+        new ChangeUserPasswordUseCase(repo, hasher),
+      inject: [USER_REPOSITORY, BcryptPasswordHasher],
     },
     {
       provide: DeactivateUserUseCase,

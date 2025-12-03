@@ -9,7 +9,7 @@ export async function runSeed() {
     dbName: env.MONGO_DB_NAME,
   });
   const userSchema = new mongoose.Schema({
-    id: { type: String, unique: true, index: true, required: true },
+    uuid: { type: String, unique: true, index: true, required: true },
     email: { type: String, unique: true, index: true, required: true },
     name: { type: String, required: true },
     passwordHash: { type: String, required: true },
@@ -29,7 +29,7 @@ export async function runSeed() {
       await conn.close();
       return;
     }
-    const id = uuidv7();
+    const uuid = uuidv7();
     const name = env.SUPER_ADMIN_NAME;
     const passwordHash = await bcrypt.hash(env.SUPER_ADMIN_PASSWORD, 10);
     const role = 'ADMIN';
@@ -37,7 +37,7 @@ export async function runSeed() {
     const birth = new Date('1999-01-01T00:00:00Z');
     const isActive = true;
     await UserModel.create({
-      id,
+      uuid,
       email,
       name,
       passwordHash,

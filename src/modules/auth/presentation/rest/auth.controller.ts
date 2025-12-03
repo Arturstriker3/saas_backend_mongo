@@ -59,7 +59,7 @@ export class AuthController {
 
   private toJSON(user: UserEntity) {
     return {
-      id: user.id,
+      uuid: user.uuid,
       name: user.name,
       email: user.email,
       birthDate: user.birthDate,
