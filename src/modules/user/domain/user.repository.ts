@@ -7,10 +7,10 @@ export interface UserRepository {
     passwordHash: string;
     birthDate: Date;
     role: string;
+    credits: number;
   }): Promise<UserEntity>;
   findAll(): Promise<UserEntity[]>;
   findById(id: string): Promise<UserEntity | null>;
   findByEmail(email: string): Promise<UserEntity | null>;
   save(user: UserEntity): Promise<void>;
 }
-

@@ -69,7 +69,7 @@ export class UserController {
       updatedAt: entity.updatedAt,
       isActive: entity.isActive,
       role: entity.role,
+      credits: entity.credits,
     };
   }
 }
-

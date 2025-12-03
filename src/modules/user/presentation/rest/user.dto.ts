@@ -6,6 +6,7 @@ export class CreateUserBody {
   passwordHash!: string;
   birthDate!: Date;
   role!: Role;
+  credits!: number;
 }
 
 export class ChangeUserNameBody {

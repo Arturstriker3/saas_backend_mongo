@@ -60,7 +60,7 @@ export class AuthController {
       updatedAt: user.updatedAt,
       isActive: user.isActive,
       role: user.role,
+      credits: user.credits,
     };
   }
 }
-

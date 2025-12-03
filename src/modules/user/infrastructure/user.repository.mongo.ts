@@ -1,40 +1,14 @@
 import { Inject } from "@nestjs/common";
-import { Model, Schema, Document } from "mongoose";
+import { Model } from "mongoose";
 import { USER_MODEL } from "../tokens";
 import { UserRepository } from "../domain/user.repository";
-import { UserEntity } from "../domain/user.entity";
+import { UserEntity, USER_CONSTANTS } from "../domain/user.entity";
 import { v7 as uuidv7 } from "uuid";
 
-export type UserDoc = Document & {
-  id: string;
-  name: string;
-  email: string;
-  passwordHash: string;
-  birthDate: Date;
-  role: string;
-  createdAt: Date;
-  updatedAt: Date;
-  isActive: boolean;
-};
-
-export function makeUserSchema() {
-  return new Schema<UserDoc>({
-    id: { type: String, unique: true, index: true, required: true },
-    email: { type: String, unique: true, index: true, required: true },
-    name: { type: String, required: true },
-    passwordHash: { type: String, required: true },
-    birthDate: { type: Date, required: true },
-    role: { type: String, required: true },
-    createdAt: { type: Date, required: true },
-    updatedAt: { type: Date, required: true },
-    isActive: { type: Boolean, required: true },
-  });
-}
-
 export class UserRepositoryMongo implements UserRepository {
-  private readonly model: Model<UserDoc>;
+  private readonly model: Model<UserEntity>;
 
-  constructor(@Inject(USER_MODEL) model: Model<UserDoc>) {
+  constructor(@Inject(USER_MODEL) model: Model<UserEntity>) {
     this.model = model;
   }
 
@@ -44,98 +18,44 @@ export class UserRepositoryMongo implements UserRepository {
     passwordHash: string;
     birthDate: Date;
     role: string;
+    credits: number;
   }): Promise<UserEntity> {
     const id = uuidv7();
     const now = new Date();
-    const isActive = false;
-    await this.model.create({
+    const doc = await this.model.create({
       id,
       email: props.email.toLowerCase(),
-      name: props.name,
+      name: props.name.trim(),
       passwordHash: props.passwordHash,
       birthDate: props.birthDate,
-      role: props.role,
+      role: props.role ?? USER_CONSTANTS.ROLE_DEFAULT,
       createdAt: now,
       updatedAt: now,
-      isActive,
+      isActive: true,
+      credits: props.credits,
     });
-    return new UserEntity({
-      id,
-      name: props.name,
-      email: props.email.toLowerCase(),
-      passwordHash: props.passwordHash,
-      birthDate: props.birthDate,
-      role: props.role,
-      createdAt: now,
-      updatedAt: now,
-      isActive,
-    });
+    return doc as UserEntity;
   }
 
   async findAll(): Promise<UserEntity[]> {
-    const docs = await this.model.find({}).lean();
-    return docs.map(
-      (row) =>
-        new UserEntity({
-          id: String(row.id),
-          email: String(row.email),
-          name: String(row.name),
-          passwordHash: String(row.passwordHash),
-          birthDate: new Date(row.birthDate),
-          role: String(row.role),
-          createdAt: new Date(row.createdAt),
-          updatedAt: new Date(row.updatedAt),
-          isActive: Boolean(row.isActive),
-        })
-    );
+    const docs = await this.model.find({}).select("+passwordHash");
+    return docs as unknown as UserEntity[];
   }
 
   async findById(id: string): Promise<UserEntity | null> {
-    const row = await this.model.findOne({ id }).lean();
-    if (!row) return null;
-    return new UserEntity({
-      id: String(row.id),
-      email: String(row.email),
-      name: String(row.name),
-      passwordHash: String(row.passwordHash),
-      birthDate: new Date(row.birthDate),
-      role: String(row.role),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-      isActive: Boolean(row.isActive),
-    });
+    const doc = await this.model.findOne({ id }).select("+passwordHash");
+    return (doc as UserEntity) ?? null;
   }
 
   async save(user: UserEntity): Promise<void> {
-    await this.model.updateOne(
-      { id: user.id },
-      {
-        $set: {
-          email: user.email,
-          name: user.name,
-          passwordHash: user.passwordHash,
-          birthDate: user.birthDate,
-          role: user.role,
-          updatedAt: user.updatedAt,
-          isActive: user.isActive,
-        },
-      }
-    );
+    user.updatedAt = new Date();
+    await (user as any).save();
   }
 
   async findByEmail(email: string): Promise<UserEntity | null> {
-    const row = await this.model.findOne({ email: email.toLowerCase() }).lean();
-    if (!row) return null;
-    return new UserEntity({
-      id: String(row.id),
-      email: String(row.email),
-      name: String(row.name),
-      passwordHash: String(row.passwordHash),
-      birthDate: new Date(row.birthDate),
-      role: String(row.role),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-      isActive: Boolean(row.isActive),
-    });
+    const doc = await this.model
+      .findOne({ email: email.toLowerCase() })
+      .select("+passwordHash");
+    return (doc as UserEntity) ?? null;
   }
 }

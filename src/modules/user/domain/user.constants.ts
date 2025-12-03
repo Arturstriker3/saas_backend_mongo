@@ -1,3 +1,0 @@
-export const USER_NAME_MIN_LENGTH = 3;
-export const USER_PASSWORD_HASH_MIN_LENGTH = 10;
-

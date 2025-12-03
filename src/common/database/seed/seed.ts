@@ -18,6 +18,7 @@ export async function runSeed() {
     createdAt: { type: Date, required: true },
     updatedAt: { type: Date, required: true },
     isActive: { type: Boolean, required: true },
+    credits: { type: Number, required: true, default: 0, min: 0 },
   });
   const UserModel = conn.model("users", userSchema);
   try {
@@ -45,6 +46,7 @@ export async function runSeed() {
       createdAt: now,
       updatedAt: now,
       isActive,
+      credits: 0,
     });
     console.log("[seed] applied: SUPER ADMIN created");
     await conn.close();
