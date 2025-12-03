@@ -10,4 +10,3 @@ export interface PasswordResetRepository {
   findByToken(token: string): Promise<PasswordResetRecord | null>;
   deleteByToken(token: string): Promise<void>;
 }
-

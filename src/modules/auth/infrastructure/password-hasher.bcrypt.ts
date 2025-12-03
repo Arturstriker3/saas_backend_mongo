@@ -1,4 +1,4 @@
-import * as bcrypt from "bcrypt";
+import * as bcrypt from 'bcrypt';
 
 export class BcryptPasswordHasher {
   async hash(plain: string): Promise<string> {
@@ -9,4 +9,3 @@ export class BcryptPasswordHasher {
     return bcrypt.compare(plain, hash);
   }
 }
-

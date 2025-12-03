@@ -10,4 +10,3 @@ export interface RefreshTokenRepository {
   findByToken(token: string): Promise<RefreshTokenRecord | null>;
   deleteByToken(token: string): Promise<void>;
 }
-

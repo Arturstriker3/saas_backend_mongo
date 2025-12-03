@@ -1,8 +1,8 @@
-import mongoose, { Connection } from "mongoose";
-import { Provider } from "@nestjs/common";
-import { loadEnv } from "../config/env";
+import mongoose, { Connection } from 'mongoose';
+import { Provider } from '@nestjs/common';
+import { loadEnv } from '../config/env';
 
-export const MONGO_CONNECTION = "MONGO_CONNECTION";
+export const MONGO_CONNECTION = 'MONGO_CONNECTION';
 export type MongooseConnection = Connection;
 
 export const mongoConnectionProvider: Provider = {
@@ -15,4 +15,3 @@ export const mongoConnectionProvider: Provider = {
     return conn;
   },
 };
-

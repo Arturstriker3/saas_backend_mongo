@@ -1,5 +1,5 @@
-import { UserRepository } from "../../domain/user.repository";
-import { UserEntity } from "../../domain/user.entity";
+import { UserRepository } from '../../domain/user.repository';
+import { UserEntity } from '../../domain/user.entity';
 
 export class ListUsersUseCase {
   private readonly repo: UserRepository;
@@ -12,4 +12,3 @@ export class ListUsersUseCase {
     return this.repo.findAll();
   }
 }
-

@@ -1,8 +1,8 @@
-import { Provider } from "@nestjs/common";
-import { Resend } from "resend";
-import { loadEnv } from "../config/env";
+import { Provider } from '@nestjs/common';
+import { Resend } from 'resend';
+import { loadEnv } from '../config/env';
 
-export const RESEND_CLIENT = "RESEND_CLIENT";
+export const RESEND_CLIENT = 'RESEND_CLIENT';
 
 export type ResendClient = Resend;
 
@@ -13,4 +13,3 @@ export const resendClientProvider: Provider = {
     return new Resend(env.RESEND_API_KEY);
   },
 };
-

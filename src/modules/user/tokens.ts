@@ -1,3 +1,2 @@
-export const USER_REPOSITORY = "USER_REPOSITORY";
-export const USER_MODEL = "USER_MODEL";
-
+export const USER_REPOSITORY = 'USER_REPOSITORY';
+export const USER_MODEL = 'USER_MODEL';

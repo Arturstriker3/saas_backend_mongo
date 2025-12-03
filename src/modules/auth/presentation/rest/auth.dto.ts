@@ -15,4 +15,3 @@ export class ConfirmPasswordResetBody {
   token!: string;
   newPassword!: string;
 }
-

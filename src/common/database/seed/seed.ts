@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
-import { loadEnv } from "../../config/env";
-import { v7 as uuidv7 } from "uuid";
-import * as bcrypt from "bcrypt";
+import mongoose from 'mongoose';
+import { loadEnv } from '../../config/env';
+import { v7 as uuidv7 } from 'uuid';
+import * as bcrypt from 'bcrypt';
 
 export async function runSeed() {
   const env = loadEnv();
@@ -20,21 +20,21 @@ export async function runSeed() {
     isActive: { type: Boolean, required: true },
     credits: { type: Number, required: true, default: 0, min: 0 },
   });
-  const UserModel = conn.model("users", userSchema);
+  const UserModel = conn.model('users', userSchema);
   try {
     const email = env.SUPER_ADMIN_EMAIL.toLowerCase();
     const exists = await UserModel.findOne({ email }).lean();
     if (exists) {
-      console.log("[seed] skipped: SUPER ADMIN already exists");
+      console.log('[seed] skipped: SUPER ADMIN already exists');
       await conn.close();
       return;
     }
     const id = uuidv7();
     const name = env.SUPER_ADMIN_NAME;
     const passwordHash = await bcrypt.hash(env.SUPER_ADMIN_PASSWORD, 10);
-    const role = "ADMIN";
+    const role = 'ADMIN';
     const now = new Date();
-    const birth = new Date("1999-01-01T00:00:00Z");
+    const birth = new Date('1999-01-01T00:00:00Z');
     const isActive = true;
     await UserModel.create({
       id,
@@ -48,10 +48,10 @@ export async function runSeed() {
       isActive,
       credits: 0,
     });
-    console.log("[seed] applied: SUPER ADMIN created");
+    console.log('[seed] applied: SUPER ADMIN created');
     await conn.close();
   } catch (err) {
-    console.error("[seed] aborted", err);
+    console.error('[seed] aborted', err);
     await conn.close();
     process.exit(1);
   }
@@ -60,4 +60,3 @@ export async function runSeed() {
 if (require.main === module) {
   runSeed();
 }
-

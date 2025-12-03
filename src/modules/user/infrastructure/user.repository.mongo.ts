@@ -1,9 +1,9 @@
-import { Inject } from "@nestjs/common";
-import { Model } from "mongoose";
-import { USER_MODEL } from "../tokens";
-import { UserRepository } from "../domain/user.repository";
-import { UserEntity, USER_CONSTANTS } from "../domain/user.entity";
-import { v7 as uuidv7 } from "uuid";
+import { Inject } from '@nestjs/common';
+import { Model } from 'mongoose';
+import { USER_MODEL } from '../tokens';
+import { UserRepository } from '../domain/user.repository';
+import { UserEntity, USER_CONSTANTS } from '../domain/user.entity';
+import { v7 as uuidv7 } from 'uuid';
 
 export class UserRepositoryMongo implements UserRepository {
   private readonly model: Model<UserEntity>;
@@ -38,12 +38,12 @@ export class UserRepositoryMongo implements UserRepository {
   }
 
   async findAll(): Promise<UserEntity[]> {
-    const docs = await this.model.find({}).select("+passwordHash");
+    const docs = await this.model.find({}).select('+passwordHash');
     return docs as unknown as UserEntity[];
   }
 
   async findById(id: string): Promise<UserEntity | null> {
-    const doc = await this.model.findOne({ id }).select("+passwordHash");
+    const doc = await this.model.findOne({ id }).select('+passwordHash');
     return (doc as UserEntity) ?? null;
   }
 
@@ -53,9 +53,7 @@ export class UserRepositoryMongo implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<UserEntity | null> {
-    const doc = await this.model
-      .findOne({ email: email.toLowerCase() })
-      .select("+passwordHash");
+    const doc = await this.model.findOne({ email: email.toLowerCase() }).select('+passwordHash');
     return (doc as UserEntity) ?? null;
   }
 }

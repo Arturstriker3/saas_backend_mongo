@@ -1,7 +1,7 @@
-import { Inject } from "@nestjs/common";
-import { Model, Schema, Document } from "mongoose";
+import { Inject } from '@nestjs/common';
+import { Model, Schema, Document } from 'mongoose';
 
-export const REFRESH_TOKEN_MODEL = "REFRESH_TOKEN_MODEL";
+export const REFRESH_TOKEN_MODEL = 'REFRESH_TOKEN_MODEL';
 
 export type RefreshTokenDoc = Document & {
   token: string;
@@ -19,7 +19,7 @@ export function makeRefreshTokenSchema() {
   });
 }
 
-import { RefreshTokenRepository, RefreshTokenRecord } from "../domain/auth.repository";
+import { RefreshTokenRepository, RefreshTokenRecord } from '../domain/auth.repository';
 
 export class RefreshTokenRepositoryMongo implements RefreshTokenRepository {
   private readonly model: Model<RefreshTokenDoc>;
@@ -52,4 +52,3 @@ export class RefreshTokenRepositoryMongo implements RefreshTokenRepository {
     await this.model.deleteOne({ token });
   }
 }
-

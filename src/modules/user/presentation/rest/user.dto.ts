@@ -1,4 +1,4 @@
-import { Role } from "../../../role/domain/role.types";
+import { Role } from '../../../role/domain/role.types';
 
 export class CreateUserBody {
   name!: string;

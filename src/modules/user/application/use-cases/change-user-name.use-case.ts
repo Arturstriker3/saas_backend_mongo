@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { UserRepository } from "../../domain/user.repository";
+import { z } from 'zod';
+import { UserRepository } from '../../domain/user.repository';
 
 export const ChangeUserNameDTO = z.object({ id: z.string().min(1), name: z.string().min(3) });
 export type ChangeUserNameInputDTO = z.infer<typeof ChangeUserNameDTO>;
@@ -14,10 +14,9 @@ export class ChangeUserNameUseCase {
   async execute(input: ChangeUserNameInputDTO) {
     const { id, name } = ChangeUserNameDTO.parse(input);
     const user = await this.repo.findById(id);
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
     user.changeName(name);
     await this.repo.save(user);
     return user;
   }
 }
-

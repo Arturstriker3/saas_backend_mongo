@@ -1,7 +1,7 @@
-import { z } from "zod";
-import { UserRepository } from "../../domain/user.repository";
-import { UserEntity, USER_CONSTANTS } from "../../domain/user.entity";
-import { ROLES } from "../../../role/domain/role.types";
+import { z } from 'zod';
+import { UserRepository } from '../../domain/user.repository';
+import { UserEntity, USER_CONSTANTS } from '../../domain/user.entity';
+import { ROLES } from '../../../role/domain/role.types';
 
 export const CreateUserDTO = z.object({
   name: z.string().min(USER_CONSTANTS.NAME_MIN_LENGTH),

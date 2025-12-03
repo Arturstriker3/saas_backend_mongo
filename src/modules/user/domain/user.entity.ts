@@ -1,10 +1,10 @@
-import { Schema, Document } from "mongoose";
-import { ROLES } from "../../role/domain/role.types";
+import { Schema, Document } from 'mongoose';
+import { ROLES } from '../../role/domain/role.types';
 
 export const USER_CONSTANTS = {
   NAME_MIN_LENGTH: 2,
   PASSWORD_HASH_MIN_LENGTH: 10,
-  ROLE_DEFAULT: "USER",
+  ROLE_DEFAULT: 'USER',
   CREDITS_MIN: 0,
   CREDITS_MAX: 99999,
 };

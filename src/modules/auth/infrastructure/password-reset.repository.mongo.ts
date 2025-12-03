@@ -1,7 +1,7 @@
-import { Inject } from "@nestjs/common";
-import { Model, Schema, Document } from "mongoose";
+import { Inject } from '@nestjs/common';
+import { Model, Schema, Document } from 'mongoose';
 
-export const PASSWORD_RESET_MODEL = "PASSWORD_RESET_MODEL";
+export const PASSWORD_RESET_MODEL = 'PASSWORD_RESET_MODEL';
 
 export type PasswordResetDoc = Document & {
   token: string;
@@ -19,7 +19,7 @@ export function makePasswordResetSchema() {
   });
 }
 
-import { PasswordResetRepository, PasswordResetRecord } from "../domain/password-reset.repository";
+import { PasswordResetRepository, PasswordResetRecord } from '../domain/password-reset.repository';
 
 export class PasswordResetRepositoryMongo implements PasswordResetRepository {
   private readonly model: Model<PasswordResetDoc>;
@@ -52,4 +52,3 @@ export class PasswordResetRepositoryMongo implements PasswordResetRepository {
     await this.model.deleteOne({ token });
   }
 }
-
