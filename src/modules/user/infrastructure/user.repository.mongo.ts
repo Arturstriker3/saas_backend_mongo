@@ -16,7 +16,6 @@ export class UserRepositoryMongo implements UserRepository {
     name: string;
     email: string;
     passwordHash: string;
-    birthDate: Date;
     role: string;
     credits: number;
   }): Promise<UserEntity> {
@@ -27,7 +26,6 @@ export class UserRepositoryMongo implements UserRepository {
       email: props.email.toLowerCase(),
       name: props.name.trim(),
       passwordHash: props.passwordHash,
-      birthDate: props.birthDate,
       role: props.role ?? USER_CONSTANTS.ROLE_DEFAULT,
       createdAt: now,
       updatedAt: now,

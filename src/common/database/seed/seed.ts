@@ -13,7 +13,6 @@ export async function runSeed() {
     email: { type: String, unique: true, index: true, required: true },
     name: { type: String, required: true },
     passwordHash: { type: String, required: true },
-    birthDate: { type: Date, required: true },
     role: { type: String, required: true },
     createdAt: { type: Date, required: true },
     updatedAt: { type: Date, required: true },
@@ -34,14 +33,12 @@ export async function runSeed() {
     const passwordHash = await bcrypt.hash(env.SUPER_ADMIN_PASSWORD, 10);
     const role = 'ADMIN';
     const now = new Date();
-    const birth = new Date('1999-01-01T00:00:00Z');
     const isActive = true;
     await UserModel.create({
       uuid,
       email,
       name,
       passwordHash,
-      birthDate: birth,
       role,
       createdAt: now,
       updatedAt: now,

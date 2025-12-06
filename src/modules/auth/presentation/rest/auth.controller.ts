@@ -1,13 +1,6 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
-import {
-  LoginBody,
-  RegisterBody,
-  RefreshTokenBody,
-  RequestPasswordResetBody,
-  ConfirmPasswordResetBody,
-} from './auth.dto';
 import { AuthenticateUserUseCase } from '../../application/use-cases/authenticate-user.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
@@ -15,6 +8,12 @@ import { RequestPasswordResetUseCase } from '../../application/use-cases/request
 import { ConfirmPasswordResetUseCase } from '../../application/use-cases/confirm-password-reset.use-case';
 import { UserEntity } from '../../../user/domain/user.entity';
 import { RegisterUserUseCase } from '../../application/use-cases/register-user.use-case';
+import { LoginInputDTO } from '../../application/use-cases/authenticate-user.use-case';
+import { RefreshInputDTO } from '../../application/use-cases/refresh-token.use-case';
+import { LogoutInputDTO } from '../../application/use-cases/logout.use-case';
+import { RequestPasswordResetInputDTO } from '../../application/use-cases/request-password-reset.use-case';
+import { ConfirmPasswordResetInputDTO } from '../../application/use-cases/confirm-password-reset.use-case';
+import { RegisterUserInputDTO } from '../../application/use-cases/register-user.use-case';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -35,57 +34,123 @@ export class AuthController {
 
   @Post('login')
   @ApiBody({
-    type: LoginBody,
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string' },
+      },
+      required: ['email', 'password'],
+    },
     examples: {
       sample: {
-        summary: 'Login example',
-        value: { email: 'admin@example.com', password: 'admin123' },
+        summary: 'Login example (same credentials as register)',
+        value: { email: 'john.doe@example.com', password: 'password123' },
       },
     },
   })
-  async login(@Body() body: LoginBody) {
+  async login(@Body() body: LoginInputDTO) {
     const { accessToken, refreshToken, user } = await this.authUseCase.execute(body);
     return { accessToken, refreshToken, user: this.toJSON(user) };
   }
 
   @Post('register')
   @ApiBody({
-    type: RegisterBody,
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string' },
+      },
+      required: ['name', 'email', 'password'],
+    },
     examples: {
       sample: {
-        summary: 'Register example',
+        summary: 'Register example (same credentials as login)',
         value: {
           name: 'John Doe',
           email: 'john.doe@example.com',
           password: 'password123',
-          birthDate: '1990-05-20',
         },
       },
     },
   })
-  async register(@Body() body: RegisterBody) {
+  async register(@Body() body: RegisterUserInputDTO) {
     const user = await this.registerUseCase.execute(body);
     return this.toJSON(user);
   }
 
   @Post('refresh-token')
-  async refreshToken(@Body() body: RefreshTokenBody) {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { refreshToken: { type: 'string' } },
+      required: ['refreshToken'],
+    },
+    examples: {
+      sample: {
+        summary: 'Refresh example',
+        value: { refreshToken: 'b3b9b1e9e9c64f8892e4f1a0b0d2b8f7' },
+      },
+    },
+  })
+  async refreshToken(@Body() body: RefreshInputDTO) {
     const { accessToken, refreshToken, user } = await this.refreshUseCase.execute(body);
     return { accessToken, refreshToken, user: this.toJSON(user) };
   }
 
   @Post('logout')
-  async logout(@Body() body: RefreshTokenBody) {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { refreshToken: { type: 'string' } },
+      required: ['refreshToken'],
+    },
+    examples: {
+      sample: {
+        summary: 'Logout example',
+        value: { refreshToken: 'b3b9b1e9e9c64f8892e4f1a0b0d2b8f7' },
+      },
+    },
+  })
+  async logout(@Body() body: LogoutInputDTO) {
     return this.logoutUseCase.execute(body);
   }
 
   @Post('request-password-reset')
-  async requestPasswordReset(@Body() body: RequestPasswordResetBody) {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { email: { type: 'string', format: 'email' } },
+      required: ['email'],
+    },
+    examples: {
+      sample: { summary: 'Request reset', value: { email: 'user@example.com' } },
+    },
+  })
+  async requestPasswordReset(@Body() body: RequestPasswordResetInputDTO) {
     return this.requestResetUseCase.execute(body);
   }
 
   @Post('confirm-password-reset')
-  async confirmPasswordReset(@Body() body: ConfirmPasswordResetBody) {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string' },
+        newPassword: { type: 'string' },
+      },
+      required: ['token', 'newPassword'],
+    },
+    examples: {
+      sample: {
+        summary: 'Confirm reset',
+        value: { token: 'reset-token-hex-string', newPassword: 'newStrongPassword123' },
+      },
+    },
+  })
+  async confirmPasswordReset(@Body() body: ConfirmPasswordResetInputDTO) {
     const user = await this.confirmResetUseCase.execute(body);
     return this.toJSON(user);
   }
@@ -95,7 +160,6 @@ export class AuthController {
       uuid: user.uuid,
       name: user.name,
       email: user.email,
-      birthDate: user.birthDate,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       isActive: user.isActive,

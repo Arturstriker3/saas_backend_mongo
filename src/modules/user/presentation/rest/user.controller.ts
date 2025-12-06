@@ -1,13 +1,21 @@
 import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
-import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
+import {
+  CreateUserUseCase,
+  CreateUserInputDTO,
+} from '../../application/use-cases/create-user.use-case';
 import { ListUsersUseCase } from '../../application/use-cases/list-users.use-case';
 import { ActivateUserUseCase } from '../../application/use-cases/activate-user.use-case';
-import { ChangeUserNameUseCase } from '../../application/use-cases/change-user-name.use-case';
-import { ChangeUserPasswordUseCase } from '../../application/use-cases/change-user-password.use-case';
+import {
+  ChangeUserNameUseCase,
+  ChangeUserNameInputDTO,
+} from '../../application/use-cases/change-user-name.use-case';
+import {
+  ChangeUserPasswordUseCase,
+  ChangeUserPasswordInputDTO,
+} from '../../application/use-cases/change-user-password.use-case';
 import { DeactivateUserUseCase } from '../../application/use-cases/deactivate-user.use-case';
-import { CreateUserBody, ChangeUserNameBody, ChangeUserPasswordBody } from './user.dto';
 import { UserEntity } from '../../domain/user.entity';
 
 @ApiTags('Users')
@@ -30,7 +38,20 @@ export class UserController {
   }
 
   @Post()
-  async create(@Body() body: CreateUserBody) {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string' },
+        role: { type: 'string' },
+        credits: { type: 'number' },
+      },
+      required: ['name', 'email', 'password', 'role', 'credits'],
+    },
+  })
+  async create(@Body() body: CreateUserInputDTO) {
     const entity = await this.createUseCase.execute(body);
     return this.toJSON(entity);
   }
@@ -42,13 +63,27 @@ export class UserController {
   }
 
   @Put(':uuid/name')
-  async changeName(@Param('uuid') uuid: string, @Body() body: ChangeUserNameBody) {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      required: ['name'],
+    },
+  })
+  async changeName(@Param('uuid') uuid: string, @Body() body: ChangeUserNameInputDTO) {
     const entity = await this.changeNameUseCase.execute({ uuid, name: body.name });
     return this.toJSON(entity);
   }
 
   @Put(':uuid/password')
-  async changePassword(@Param('uuid') uuid: string, @Body() body: ChangeUserPasswordBody) {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { newPassword: { type: 'string' } },
+      required: ['newPassword'],
+    },
+  })
+  async changePassword(@Param('uuid') uuid: string, @Body() body: ChangeUserPasswordInputDTO) {
     const entity = await this.changePasswordUseCase.execute({
       uuid,
       newPassword: body.newPassword,
@@ -67,7 +102,6 @@ export class UserController {
       uuid: entity.uuid,
       name: entity.name,
       email: entity.email,
-      birthDate: entity.birthDate,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       isActive: entity.isActive,

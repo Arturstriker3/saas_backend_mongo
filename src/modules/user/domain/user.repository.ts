@@ -5,7 +5,6 @@ export interface UserRepository {
     name: string;
     email: string;
     passwordHash: string;
-    birthDate: Date;
     role: string;
     credits: number;
   }): Promise<UserEntity>;

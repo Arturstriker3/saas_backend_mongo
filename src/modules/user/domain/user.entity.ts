@@ -12,7 +12,6 @@ export const USER_CONSTANTS = {
   CREDITS_DEFAULT: 0,
   CREDITS_MIN: 0,
   CREDITS_MAX: 999999,
-  BIRTHDATE_MIN: new Date('1900-01-01T00:00:00Z'),
 };
 
 export type UserEntity = Document & {
@@ -20,7 +19,6 @@ export type UserEntity = Document & {
   name: string;
   email: string;
   passwordHash: string;
-  birthDate: Date;
   role: string;
   createdAt: Date;
   updatedAt: Date;
@@ -51,7 +49,6 @@ export function makeUserSchema() {
       maxlength: USER_CONSTANTS.EMAIL_MAX_LENGTH,
     },
     passwordHash: { type: String, required: true, select: false },
-    birthDate: { type: Date, required: true, min: USER_CONSTANTS.BIRTHDATE_MIN },
     role: {
       type: String,
       enum: ROLES,
