@@ -17,6 +17,7 @@ import {
 } from '../../application/use-cases/change-user-password.use-case';
 import { DeactivateUserUseCase } from '../../application/use-cases/deactivate-user.use-case';
 import { UserEntity } from '../../domain/user.entity';
+import { Authenticated } from '../../../../common/http/access.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -32,12 +33,14 @@ export class UserController {
   ) {}
 
   @Get()
+  @Authenticated('ADMIN')
   async list() {
     const entities = await this.listUseCase.execute();
     return entities.map(this.toJSON);
   }
 
   @Post()
+  @Authenticated('ADMIN')
   @ApiBody({
     schema: {
       type: 'object',
@@ -57,12 +60,14 @@ export class UserController {
   }
 
   @Post(':uuid/activate')
+  @Authenticated('ADMIN')
   async activate(@Param('uuid') uuid: string) {
     const entity = await this.activateUseCase.execute({ uuid });
     return this.toJSON(entity);
   }
 
   @Put(':uuid/name')
+  @Authenticated('ADMIN')
   @ApiBody({
     schema: {
       type: 'object',
@@ -76,6 +81,7 @@ export class UserController {
   }
 
   @Put(':uuid/password')
+  @Authenticated('ADMIN')
   @ApiBody({
     schema: {
       type: 'object',

@@ -14,6 +14,7 @@ import { LogoutInputDTO } from '../../application/use-cases/logout.use-case';
 import { RequestPasswordResetInputDTO } from '../../application/use-cases/request-password-reset.use-case';
 import { ConfirmPasswordResetInputDTO } from '../../application/use-cases/confirm-password-reset.use-case';
 import { RegisterUserInputDTO } from '../../application/use-cases/register-user.use-case';
+import { Public, Authenticated } from '../../../../common/http/access.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -33,6 +34,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @Public()
   @ApiBody({
     schema: {
       type: 'object',
@@ -55,6 +57,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Public()
   @ApiBody({
     schema: {
       type: 'object',
@@ -82,6 +85,7 @@ export class AuthController {
   }
 
   @Post('refresh-token')
+  @Authenticated()
   @ApiBody({
     schema: {
       type: 'object',
@@ -101,6 +105,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @Authenticated()
   @ApiBody({
     schema: {
       type: 'object',
@@ -119,6 +124,7 @@ export class AuthController {
   }
 
   @Post('request-password-reset')
+  @Public()
   @ApiBody({
     schema: {
       type: 'object',
@@ -134,6 +140,7 @@ export class AuthController {
   }
 
   @Post('confirm-password-reset')
+  @Public()
   @ApiBody({
     schema: {
       type: 'object',
