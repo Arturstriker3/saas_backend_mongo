@@ -1,8 +1,9 @@
 import { Controller, Post, Body } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import {
   LoginBody,
+  RegisterBody,
   RefreshTokenBody,
   RequestPasswordResetBody,
   ConfirmPasswordResetBody,
@@ -13,6 +14,7 @@ import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import { RequestPasswordResetUseCase } from '../../application/use-cases/request-password-reset.use-case';
 import { ConfirmPasswordResetUseCase } from '../../application/use-cases/confirm-password-reset.use-case';
 import { UserEntity } from '../../../user/domain/user.entity';
+import { RegisterUserUseCase } from '../../application/use-cases/register-user.use-case';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -27,12 +29,43 @@ export class AuthController {
     private readonly requestResetUseCase: RequestPasswordResetUseCase,
     @Inject(ConfirmPasswordResetUseCase)
     private readonly confirmResetUseCase: ConfirmPasswordResetUseCase,
+    @Inject(RegisterUserUseCase)
+    private readonly registerUseCase: RegisterUserUseCase,
   ) {}
 
   @Post('login')
+  @ApiBody({
+    type: LoginBody,
+    examples: {
+      sample: {
+        summary: 'Login example',
+        value: { email: 'admin@example.com', password: 'admin123' },
+      },
+    },
+  })
   async login(@Body() body: LoginBody) {
     const { accessToken, refreshToken, user } = await this.authUseCase.execute(body);
     return { accessToken, refreshToken, user: this.toJSON(user) };
+  }
+
+  @Post('register')
+  @ApiBody({
+    type: RegisterBody,
+    examples: {
+      sample: {
+        summary: 'Register example',
+        value: {
+          name: 'John Doe',
+          email: 'john.doe@example.com',
+          password: 'password123',
+          birthDate: '1990-05-20',
+        },
+      },
+    },
+  })
+  async register(@Body() body: RegisterBody) {
+    const user = await this.registerUseCase.execute(body);
+    return this.toJSON(user);
   }
 
   @Post('refresh-token')

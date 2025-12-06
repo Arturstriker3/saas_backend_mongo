@@ -7,11 +7,17 @@ export class EmailService {
 
   async sendPasswordReset(to: string, token: string): Promise<void> {
     const env = loadEnv();
-    await this.resend.emails.send({
-      from: env.RESEND_FROM,
-      to,
-      subject: 'Password Reset',
-      text: `Use this token to reset your password: ${token}`,
-    });
+    try {
+      await this.resend.emails.send({
+        from: env.RESEND_FROM,
+        to,
+        subject: 'Password Reset',
+        text: `Use this token to reset your password: ${token}`,
+      });
+    } catch (err: unknown) {
+      const name = (err as any)?.name as string | undefined;
+      if (name === 'validation_error') return;
+      throw err;
+    }
   }
 }
