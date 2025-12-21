@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   PasswordResetRepository,
   PasswordResetRecord,
@@ -13,6 +14,17 @@ export const ConfirmPasswordResetDTO = z.object({
 });
 export type ConfirmPasswordResetInputDTO = z.infer<typeof ConfirmPasswordResetDTO>;
 
+export type ConfirmPasswordResetOutputDTO = {
+  uuid: string;
+  name: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+  role: string;
+  credits: number;
+};
+
 export class ConfirmPasswordResetUseCase {
   constructor(
     private readonly resets: PasswordResetRepository,
@@ -20,7 +32,7 @@ export class ConfirmPasswordResetUseCase {
     private readonly hasher: BcryptPasswordHasher,
   ) {}
 
-  async execute(input: ConfirmPasswordResetInputDTO): Promise<UserEntity> {
+  async execute(input: ConfirmPasswordResetInputDTO): Promise<ConfirmPasswordResetOutputDTO> {
     const { token, newPassword } = ConfirmPasswordResetDTO.parse(input);
     const record = await this.getValidResetRecord(token);
     const user = await this.getExistingUser(record.userId);
@@ -28,20 +40,29 @@ export class ConfirmPasswordResetUseCase {
     user.changePassword(hash);
     await this.users.save(user);
     await this.resets.deleteByToken(token);
-    return user;
+    return {
+      uuid: user.uuid,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      isActive: user.isActive,
+      role: user.role,
+      credits: user.credits,
+    };
   }
 
   private async getValidResetRecord(token: string): Promise<PasswordResetRecord> {
     const record = await this.resets.findByToken(token);
-    if (!record) throw new Error('Invalid reset token');
+    if (!record) throw new BadRequestException('Invalid reset token');
     const expired = record.expiresAt.getTime() <= Date.now();
-    if (expired) throw new Error('Reset token expired');
+    if (expired) throw new BadRequestException('Reset token expired');
     return record;
   }
 
   private async getExistingUser(userId: string): Promise<UserEntity> {
     const user = await this.users.findById(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new NotFoundException('User not found');
     return user;
   }
 }

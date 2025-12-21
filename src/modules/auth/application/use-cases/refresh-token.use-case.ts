@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { JwtService } from '@nestjs/jwt';
+import { UnauthorizedException } from '@nestjs/common';
 import { RefreshTokenRepository } from '../../domain/auth.repository';
 import { UserRepository } from '../../../user/domain/user.repository';
 import { loadEnv } from '../../../../common/config/env';
@@ -8,6 +9,11 @@ import { randomBytes } from 'crypto';
 export const RefreshDTO = z.object({ refreshToken: z.string().min(1) });
 export type RefreshInputDTO = z.infer<typeof RefreshDTO>;
 
+export type RefreshTokenOutputDTO = {
+  accessToken: string;
+  refreshToken: string;
+};
+
 export class RefreshTokenUseCase {
   constructor(
     private readonly tokens: RefreshTokenRepository,
@@ -15,13 +21,14 @@ export class RefreshTokenUseCase {
     private readonly jwt: JwtService,
   ) {}
 
-  async execute(input: RefreshInputDTO) {
+  async execute(input: RefreshInputDTO): Promise<RefreshTokenOutputDTO> {
     const { refreshToken } = RefreshDTO.parse(input);
     const record = await this.tokens.findByToken(refreshToken);
-    if (!record) throw new Error('Invalid refresh token');
-    if (record.expiresAt.getTime() <= Date.now()) throw new Error('Refresh token expired');
+    if (!record) throw new UnauthorizedException('Invalid refresh token');
+    if (record.expiresAt.getTime() <= Date.now())
+      throw new UnauthorizedException('Refresh token expired');
     const user = await this.users.findById(record.userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new UnauthorizedException('User not found');
     const env = loadEnv();
     const accessToken = await this.jwt.signAsync(
       { sub: user.uuid, role: user.role },
@@ -37,6 +44,6 @@ export class RefreshTokenUseCase {
       createdAt: now,
       expiresAt: expires,
     });
-    return { accessToken, refreshToken: newRefresh, user };
+    return { accessToken, refreshToken: newRefresh };
   }
 }

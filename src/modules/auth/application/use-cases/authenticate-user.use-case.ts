@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { JwtService } from '@nestjs/jwt';
+import { UnauthorizedException } from '@nestjs/common';
 import { UserRepository } from '../../../user/domain/user.repository';
 import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcrypt';
 import { RefreshTokenRepository } from '../../domain/auth.repository';
@@ -13,6 +14,11 @@ export const LoginDTO = z.object({
 
 export type LoginInputDTO = z.infer<typeof LoginDTO>;
 
+export type AuthenticateUserOutputDTO = {
+  accessToken: string;
+  refreshToken: string;
+};
+
 export class AuthenticateUserUseCase {
   constructor(
     private readonly users: UserRepository,
@@ -21,12 +27,12 @@ export class AuthenticateUserUseCase {
     private readonly jwt: JwtService,
   ) {}
 
-  async execute(input: LoginInputDTO) {
+  async execute(input: LoginInputDTO): Promise<AuthenticateUserOutputDTO> {
     const { email, password } = LoginDTO.parse(input);
     const user = await this.users.findByEmail(email);
-    if (!user || !user.isActive) throw new Error('Invalid credentials');
+    if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
     const ok = await this.hasher.compare(password, user.passwordHash);
-    if (!ok) throw new Error('Invalid credentials');
+    if (!ok) throw new UnauthorizedException('Invalid credentials');
     const env = loadEnv();
     const accessToken = await this.jwt.signAsync(
       { sub: user.uuid, role: user.role },
@@ -41,6 +47,6 @@ export class AuthenticateUserUseCase {
       createdAt: now,
       expiresAt: expires,
     });
-    return { accessToken, refreshToken, user };
+    return { accessToken, refreshToken };
   }
 }

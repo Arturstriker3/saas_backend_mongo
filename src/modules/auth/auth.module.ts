@@ -20,6 +20,7 @@ import { ConfirmPasswordResetUseCase } from './application/use-cases/confirm-pas
 import { resendClientProvider } from '../../common/email/resend.client';
 import { EmailService } from '../../common/email/email.service';
 import { RegisterUserUseCase } from './application/use-cases/register-user.use-case';
+import { GetMeUseCase } from './application/use-cases/get-me.use-case';
 import { MONGO_CONNECTION, MongooseConnection } from '../../common/database/mongo.connection';
 import {
   RefreshTokenRepositoryMongo,
@@ -104,6 +105,11 @@ import {
       useFactory: (users: UserRepository, hasher: BcryptPasswordHasher) =>
         new RegisterUserUseCase(users, hasher),
       inject: [UserRepositoryMongo, BcryptPasswordHasher],
+    },
+    {
+      provide: GetMeUseCase,
+      useFactory: (users: UserRepository) => new GetMeUseCase(users),
+      inject: [UserRepositoryMongo],
     },
     JwtStrategy,
   ],

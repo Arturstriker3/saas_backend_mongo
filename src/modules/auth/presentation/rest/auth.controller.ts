@@ -1,30 +1,40 @@
+import { Controller, Post, Body, Get, Req, Inject } from '@nestjs/common';
 import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Req,
-  UnauthorizedException,
-  NotFoundException,
-} from '@nestjs/common';
-import { ApiTags, ApiBody } from '@nestjs/swagger';
-import { Inject } from '@nestjs/common';
+  ApiTags,
+  ApiBody,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+} from '@nestjs/swagger';
 import { Request } from 'express';
-import { AuthenticateUserUseCase } from '../../application/use-cases/authenticate-user.use-case';
+import {
+  AuthenticateUserUseCase,
+  AuthenticateUserOutputDTO,
+  LoginInputDTO,
+} from '../../application/use-cases/authenticate-user.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import { RequestPasswordResetUseCase } from '../../application/use-cases/request-password-reset.use-case';
 import { ConfirmPasswordResetUseCase } from '../../application/use-cases/confirm-password-reset.use-case';
-import { UserEntity } from '../../../user/domain/user.entity';
 import { RegisterUserUseCase } from '../../application/use-cases/register-user.use-case';
-import { LoginInputDTO } from '../../application/use-cases/authenticate-user.use-case';
-import { RefreshInputDTO } from '../../application/use-cases/refresh-token.use-case';
+import {
+  RegisterUserOutputDTO,
+  RegisterUserInputDTO,
+} from '../../application/use-cases/register-user.use-case';
+import {
+  RefreshInputDTO,
+  RefreshTokenOutputDTO,
+} from '../../application/use-cases/refresh-token.use-case';
 import { LogoutInputDTO } from '../../application/use-cases/logout.use-case';
 import { RequestPasswordResetInputDTO } from '../../application/use-cases/request-password-reset.use-case';
-import { ConfirmPasswordResetInputDTO } from '../../application/use-cases/confirm-password-reset.use-case';
-import { RegisterUserInputDTO } from '../../application/use-cases/register-user.use-case';
+import {
+  ConfirmPasswordResetInputDTO,
+  ConfirmPasswordResetOutputDTO,
+} from '../../application/use-cases/confirm-password-reset.use-case';
 import { Public, Authenticated } from '../../../../common/http/access.decorator';
-import { UserRepositoryMongo } from '../../../user/infrastructure/user.repository.mongo';
+import { GetMeUseCase, GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -41,8 +51,8 @@ export class AuthController {
     private readonly confirmResetUseCase: ConfirmPasswordResetUseCase,
     @Inject(RegisterUserUseCase)
     private readonly registerUseCase: RegisterUserUseCase,
-    @Inject(UserRepositoryMongo)
-    private readonly userRepo: UserRepositoryMongo,
+    @Inject(GetMeUseCase)
+    private readonly getMeUseCase: GetMeUseCase,
   ) {}
 
   @Post('login')
@@ -63,19 +73,52 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() body: LoginInputDTO) {
-    const { accessToken, refreshToken } = await this.authUseCase.execute(body);
-    return { accessToken, refreshToken };
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        accessToken: { type: 'string' },
+        refreshToken: { type: 'string' },
+      },
+      required: ['accessToken', 'refreshToken'],
+    },
+  })
+  @ApiUnauthorizedResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @ApiBadRequestResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  async login(@Body() body: LoginInputDTO): Promise<AuthenticateUserOutputDTO> {
+    return this.authUseCase.execute(body);
   }
 
   @Get('me')
   @Authenticated()
-  async me(@Req() req: Request & { user?: { userId?: string } }) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException();
-    const user = await this.userRepo.findById(userId);
-    if (!user) throw new NotFoundException('User not found');
-    return this.toJSON(user);
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        uuid: { type: 'string' },
+        name: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+        isActive: { type: 'boolean' },
+        role: { type: 'string' },
+        credits: { type: 'number' },
+      },
+      required: ['uuid', 'name', 'email', 'createdAt', 'updatedAt', 'isActive', 'role', 'credits'],
+    },
+  })
+  @ApiUnauthorizedResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @ApiNotFoundResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  async me(@Req() req: Request & { user: { userId: string } }): Promise<GetMeOutputDTO> {
+    return this.getMeUseCase.execute({ userId: req.user.userId });
   }
 
   @Post('register')
@@ -101,13 +144,34 @@ export class AuthController {
       },
     },
   })
-  async register(@Body() body: RegisterUserInputDTO) {
-    const user = await this.registerUseCase.execute(body);
-    return this.toJSON(user);
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        uuid: { type: 'string' },
+        name: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+        isActive: { type: 'boolean' },
+        role: { type: 'string' },
+        credits: { type: 'number' },
+      },
+      required: ['uuid', 'name', 'email', 'createdAt', 'updatedAt', 'isActive', 'role', 'credits'],
+    },
+  })
+  @ApiConflictResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @ApiBadRequestResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  async register(@Body() body: RegisterUserInputDTO): Promise<RegisterUserOutputDTO> {
+    return this.registerUseCase.execute(body);
   }
 
   @Post('refresh-token')
-  @Authenticated()
+  @Public()
   @ApiBody({
     schema: {
       type: 'object',
@@ -121,9 +185,24 @@ export class AuthController {
       },
     },
   })
-  async refreshToken(@Body() body: RefreshInputDTO) {
-    const { accessToken, refreshToken, user } = await this.refreshUseCase.execute(body);
-    return { accessToken, refreshToken, user: this.toJSON(user) };
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        accessToken: { type: 'string' },
+        refreshToken: { type: 'string' },
+      },
+      required: ['accessToken', 'refreshToken'],
+    },
+  })
+  @ApiUnauthorizedResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @ApiBadRequestResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  async refreshToken(@Body() body: RefreshInputDTO): Promise<RefreshTokenOutputDTO> {
+    return this.refreshUseCase.execute(body);
   }
 
   @Post('logout')
@@ -141,7 +220,14 @@ export class AuthController {
       },
     },
   })
-  async logout(@Body() body: LogoutInputDTO) {
+  @ApiOkResponse({ schema: { type: 'boolean' } })
+  @ApiUnauthorizedResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @ApiBadRequestResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  async logout(@Body() body: LogoutInputDTO): Promise<boolean> {
     return this.logoutUseCase.execute(body);
   }
 
@@ -157,7 +243,11 @@ export class AuthController {
       sample: { summary: 'Request reset', value: { email: 'user@example.com' } },
     },
   })
-  async requestPasswordReset(@Body() body: RequestPasswordResetInputDTO) {
+  @ApiOkResponse({ schema: { type: 'boolean' } })
+  @ApiBadRequestResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  async requestPasswordReset(@Body() body: RequestPasswordResetInputDTO): Promise<boolean> {
     return this.requestResetUseCase.execute(body);
   }
 
@@ -179,21 +269,31 @@ export class AuthController {
       },
     },
   })
-  async confirmPasswordReset(@Body() body: ConfirmPasswordResetInputDTO) {
-    const user = await this.confirmResetUseCase.execute(body);
-    return this.toJSON(user);
-  }
-
-  private toJSON(user: UserEntity) {
-    return {
-      uuid: user.uuid,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      isActive: user.isActive,
-      role: user.role,
-      credits: user.credits,
-    };
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        uuid: { type: 'string' },
+        name: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+        isActive: { type: 'boolean' },
+        role: { type: 'string' },
+        credits: { type: 'number' },
+      },
+      required: ['uuid', 'name', 'email', 'createdAt', 'updatedAt', 'isActive', 'role', 'credits'],
+    },
+  })
+  @ApiBadRequestResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @ApiNotFoundResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  async confirmPasswordReset(
+    @Body() body: ConfirmPasswordResetInputDTO,
+  ): Promise<ConfirmPasswordResetOutputDTO> {
+    return this.confirmResetUseCase.execute(body);
   }
 }
