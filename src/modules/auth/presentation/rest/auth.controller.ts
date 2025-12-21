@@ -1,6 +1,15 @@
-import { Controller, Post, Body, Get, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Req,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
+import { Request } from 'express';
 import { AuthenticateUserUseCase } from '../../application/use-cases/authenticate-user.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
@@ -61,11 +70,11 @@ export class AuthController {
 
   @Get('me')
   @Authenticated()
-  async me(@Req() req: { user?: { userId?: string } }) {
+  async me(@Req() req: Request & { user?: { userId?: string } }) {
     const userId = req.user?.userId;
-    if (!userId) throw new Error('Unauthorized');
+    if (!userId) throw new UnauthorizedException();
     const user = await this.userRepo.findById(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new NotFoundException('User not found');
     return this.toJSON(user);
   }
 

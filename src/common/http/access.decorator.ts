@@ -1,7 +1,9 @@
-import { applyDecorators, SetMetadata } from '@nestjs/common';
+import { applyDecorators, SetMetadata, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Role } from '../../modules/role/domain/role.types';
 import { ROLES_KEY } from '../../modules/role/presentation/role.decorator';
+import { RolesGuard } from '../../modules/role/presentation/role.guard';
 
 export const IS_PUBLIC_KEY = 'is_public';
 
@@ -25,7 +27,7 @@ export function Access(options: AccessOptions = {}) {
     SetMetadata(ROLES_KEY, roles),
     ApiOperation({ summary }),
   ];
-  if (authRequired) decorators.push(ApiBearerAuth());
+  if (authRequired) decorators.push(ApiBearerAuth(), UseGuards(AuthGuard('jwt'), RolesGuard));
   return applyDecorators(...decorators);
 }
 

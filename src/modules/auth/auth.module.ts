@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { loadEnv } from '../../common/config/env';
 import { DatabaseModule } from '../../common/database/database.module';
 import { UserModule } from '../user/user.module';
+import { RoleModule } from '../role/role.module';
 import { UserRepository } from '../user/domain/user.repository';
 import { UserRepositoryMongo } from '../user/infrastructure/user.repository.mongo';
 import { RefreshTokenRepository } from './domain/auth.repository';
@@ -35,6 +36,7 @@ import {
   imports: [
     DatabaseModule,
     UserModule,
+    RoleModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => {

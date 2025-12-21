@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../common/database/database.module';
+import { RoleModule } from '../role/role.module';
 import { UserRepositoryMongo } from './infrastructure/user.repository.mongo';
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { ListUsersUseCase } from './application/use-cases/list-users.use-case';
@@ -11,7 +12,7 @@ import { UserController } from './presentation/rest/user.controller';
 import { BcryptPasswordHasher } from '../auth/infrastructure/password-hasher.bcrypt';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, RoleModule],
   providers: [
     BcryptPasswordHasher,
     UserRepositoryMongo,
