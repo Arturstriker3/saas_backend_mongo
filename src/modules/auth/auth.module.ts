@@ -4,8 +4,8 @@ import { PassportModule } from '@nestjs/passport';
 import { loadEnv } from '../../common/config/env';
 import { DatabaseModule } from '../../common/database/database.module';
 import { UserModule } from '../user/user.module';
-import { USER_REPOSITORY } from '../user/tokens';
 import { UserRepository } from '../user/domain/user.repository';
+import { UserRepositoryMongo } from '../user/infrastructure/user.repository.mongo';
 import { RefreshTokenRepository } from './domain/auth.repository';
 import { BcryptPasswordHasher } from './infrastructure/password-hasher.bcrypt';
 import { AuthenticateUserUseCase } from './application/use-cases/authenticate-user.use-case';
@@ -69,13 +69,13 @@ import {
         tokens: RefreshTokenRepository,
         jwt: JwtService,
       ) => new AuthenticateUserUseCase(users, hasher, tokens, jwt),
-      inject: [USER_REPOSITORY, BcryptPasswordHasher, RefreshTokenRepositoryMongo, JwtService],
+      inject: [UserRepositoryMongo, BcryptPasswordHasher, RefreshTokenRepositoryMongo, JwtService],
     },
     {
       provide: RefreshTokenUseCase,
       useFactory: (tokens: RefreshTokenRepository, users: UserRepository, jwt: JwtService) =>
         new RefreshTokenUseCase(tokens, users, jwt),
-      inject: [RefreshTokenRepositoryMongo, USER_REPOSITORY, JwtService],
+      inject: [RefreshTokenRepositoryMongo, UserRepositoryMongo, JwtService],
     },
     {
       provide: LogoutUseCase,
@@ -86,7 +86,7 @@ import {
       provide: RequestPasswordResetUseCase,
       useFactory: (users: UserRepository, resets: PasswordResetRepository, email: EmailService) =>
         new RequestPasswordResetUseCase(users, resets, email),
-      inject: [USER_REPOSITORY, PasswordResetRepositoryMongo, EmailService],
+      inject: [UserRepositoryMongo, PasswordResetRepositoryMongo, EmailService],
     },
     {
       provide: ConfirmPasswordResetUseCase,
@@ -95,13 +95,13 @@ import {
         users: UserRepository,
         hasher: BcryptPasswordHasher,
       ) => new ConfirmPasswordResetUseCase(resets, users, hasher),
-      inject: [PasswordResetRepositoryMongo, USER_REPOSITORY, BcryptPasswordHasher],
+      inject: [PasswordResetRepositoryMongo, UserRepositoryMongo, BcryptPasswordHasher],
     },
     {
       provide: RegisterUserUseCase,
       useFactory: (users: UserRepository, hasher: BcryptPasswordHasher) =>
         new RegisterUserUseCase(users, hasher),
-      inject: [USER_REPOSITORY, BcryptPasswordHasher],
+      inject: [UserRepositoryMongo, BcryptPasswordHasher],
     },
     JwtStrategy,
   ],

@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req } from '@nestjs/common';
 import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import { AuthenticateUserUseCase } from '../../application/use-cases/authenticate-user.use-case';
@@ -15,6 +15,7 @@ import { RequestPasswordResetInputDTO } from '../../application/use-cases/reques
 import { ConfirmPasswordResetInputDTO } from '../../application/use-cases/confirm-password-reset.use-case';
 import { RegisterUserInputDTO } from '../../application/use-cases/register-user.use-case';
 import { Public, Authenticated } from '../../../../common/http/access.decorator';
+import { UserRepositoryMongo } from '../../../user/infrastructure/user.repository.mongo';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -31,6 +32,8 @@ export class AuthController {
     private readonly confirmResetUseCase: ConfirmPasswordResetUseCase,
     @Inject(RegisterUserUseCase)
     private readonly registerUseCase: RegisterUserUseCase,
+    @Inject(UserRepositoryMongo)
+    private readonly userRepo: UserRepositoryMongo,
   ) {}
 
   @Post('login')
@@ -52,8 +55,18 @@ export class AuthController {
     },
   })
   async login(@Body() body: LoginInputDTO) {
-    const { accessToken, refreshToken, user } = await this.authUseCase.execute(body);
-    return { accessToken, refreshToken, user: this.toJSON(user) };
+    const { accessToken, refreshToken } = await this.authUseCase.execute(body);
+    return { accessToken, refreshToken };
+  }
+
+  @Get('me')
+  @Authenticated()
+  async me(@Req() req: { user?: { userId?: string } }) {
+    const userId = req.user?.userId;
+    if (!userId) throw new Error('Unauthorized');
+    const user = await this.userRepo.findById(userId);
+    if (!user) throw new Error('User not found');
+    return this.toJSON(user);
   }
 
   @Post('register')

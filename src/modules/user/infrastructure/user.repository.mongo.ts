@@ -1,15 +1,15 @@
 import { Inject } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { USER_MODEL } from '../tokens';
 import { UserRepository } from '../domain/user.repository';
-import { UserEntity, USER_CONSTANTS } from '../domain/user.entity';
+import { UserEntity, USER_CONSTANTS, makeUserSchema } from '../domain/user.entity';
 import { v7 as uuidv7 } from 'uuid';
+import { MONGO_CONNECTION, MongooseConnection } from '../../../common/database/mongo.connection';
 
 export class UserRepositoryMongo implements UserRepository {
   private readonly model: Model<UserEntity>;
 
-  constructor(@Inject(USER_MODEL) model: Model<UserEntity>) {
-    this.model = model;
+  constructor(@Inject(MONGO_CONNECTION) conn: MongooseConnection) {
+    this.model = conn.models['users'] ?? conn.model<UserEntity>('users', makeUserSchema());
   }
 
   async create(props: {
