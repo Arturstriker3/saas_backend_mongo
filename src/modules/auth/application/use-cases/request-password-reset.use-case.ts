@@ -4,6 +4,7 @@ import { PasswordResetRepository } from '../../domain/password-reset.repository'
 import { EmailService } from '../../../../common/email/email.service';
 import { loadEnv } from '../../../../common/config/env';
 import { randomBytes } from 'crypto';
+import { v7 as uuidv7 } from 'uuid';
 
 export const RequestPasswordResetDTO = z.object({ email: z.string().email() });
 export type RequestPasswordResetInputDTO = z.infer<typeof RequestPasswordResetDTO>;
@@ -24,6 +25,7 @@ export class RequestPasswordResetUseCase {
     const now = new Date();
     const expires = new Date(now.getTime() + parseInt(env.PASSWORD_RESET_TTL, 10) * 1000);
     await this.resets.save({
+      uuid: uuidv7(),
       token,
       userId: String(user.uuid),
       createdAt: now,

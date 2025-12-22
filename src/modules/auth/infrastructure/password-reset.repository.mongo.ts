@@ -4,6 +4,7 @@ import { Model, Schema, Document } from 'mongoose';
 export const PASSWORD_RESET_MODEL = 'PASSWORD_RESET_MODEL';
 
 export type PasswordResetDoc = Document & {
+  uuid: string;
   token: string;
   userId: string;
   createdAt: Date;
@@ -12,6 +13,7 @@ export type PasswordResetDoc = Document & {
 
 export function makePasswordResetSchema() {
   return new Schema<PasswordResetDoc>({
+    uuid: { type: String, unique: true, index: true, required: true },
     token: { type: String, unique: true, index: true, required: true },
     userId: { type: String, index: true, required: true },
     createdAt: { type: Date, required: true },
@@ -30,6 +32,7 @@ export class PasswordResetRepositoryMongo implements PasswordResetRepository {
 
   async save(record: PasswordResetRecord): Promise<void> {
     await this.model.create({
+      uuid: record.uuid,
       token: record.token,
       userId: record.userId,
       createdAt: record.createdAt,
@@ -41,6 +44,7 @@ export class PasswordResetRepositoryMongo implements PasswordResetRepository {
     const row = await this.model.findOne({ token }).lean();
     if (!row) return null;
     return {
+      uuid: String(row.uuid),
       token: String(row.token),
       userId: String(row.userId),
       createdAt: new Date(row.createdAt),

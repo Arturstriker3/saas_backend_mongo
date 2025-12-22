@@ -1,4 +1,5 @@
 export type RefreshTokenRecord = {
+  uuid: string;
   token: string;
   userId: string;
   createdAt: Date;

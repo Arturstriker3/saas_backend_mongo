@@ -6,6 +6,7 @@ import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcryp
 import { RefreshTokenRepository } from '../../domain/auth.repository';
 import { loadEnv } from '../../../../common/config/env';
 import { randomBytes } from 'crypto';
+import { v7 as uuidv7 } from 'uuid';
 
 export const LoginDTO = z.object({
   email: z.string().email(),
@@ -42,6 +43,7 @@ export class AuthenticateUserUseCase {
     const now = new Date();
     const expires = new Date(now.getTime() + parseInt(env.REFRESH_TOKEN_TTL, 10) * 1000);
     await this.tokens.save({
+      uuid: uuidv7(),
       token: refreshToken,
       userId: user.uuid,
       createdAt: now,

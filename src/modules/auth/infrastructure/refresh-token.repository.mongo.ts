@@ -4,6 +4,7 @@ import { Model, Schema, Document } from 'mongoose';
 export const REFRESH_TOKEN_MODEL = 'REFRESH_TOKEN_MODEL';
 
 export type RefreshTokenDoc = Document & {
+  uuid: string;
   token: string;
   userId: string;
   createdAt: Date;
@@ -12,6 +13,7 @@ export type RefreshTokenDoc = Document & {
 
 export function makeRefreshTokenSchema() {
   return new Schema<RefreshTokenDoc>({
+    uuid: { type: String, unique: true, index: true, required: true },
     token: { type: String, unique: true, index: true, required: true },
     userId: { type: String, index: true, required: true },
     createdAt: { type: Date, required: true },
@@ -30,6 +32,7 @@ export class RefreshTokenRepositoryMongo implements RefreshTokenRepository {
 
   async save(record: RefreshTokenRecord): Promise<void> {
     await this.model.create({
+      uuid: record.uuid,
       token: record.token,
       userId: record.userId,
       createdAt: record.createdAt,
@@ -41,6 +44,7 @@ export class RefreshTokenRepositoryMongo implements RefreshTokenRepository {
     const row = await this.model.findOne({ token }).lean();
     if (!row) return null;
     return {
+      uuid: String(row.uuid),
       token: String(row.token),
       userId: String(row.userId),
       createdAt: new Date(row.createdAt),

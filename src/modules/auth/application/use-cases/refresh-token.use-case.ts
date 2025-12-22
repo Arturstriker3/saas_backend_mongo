@@ -5,6 +5,7 @@ import { RefreshTokenRepository } from '../../domain/auth.repository';
 import { UserRepository } from '../../../user/domain/user.repository';
 import { loadEnv } from '../../../../common/config/env';
 import { randomBytes } from 'crypto';
+import { v7 as uuidv7 } from 'uuid';
 
 export const RefreshDTO = z.object({ refreshToken: z.string().min(1) });
 export type RefreshInputDTO = z.infer<typeof RefreshDTO>;
@@ -24,7 +25,7 @@ export class RefreshTokenUseCase {
   async execute(input: RefreshInputDTO): Promise<RefreshTokenOutputDTO> {
     const { refreshToken } = RefreshDTO.parse(input);
     const record = await this.tokens.findByToken(refreshToken);
-    if (!record) throw new UnauthorizedException('Invalid refresh token');
+    if (!record) throw new UnauthorizedException('Refresh token not found');
     if (record.expiresAt.getTime() <= Date.now())
       throw new UnauthorizedException('Refresh token expired');
     const user = await this.users.findById(record.userId);
@@ -39,6 +40,7 @@ export class RefreshTokenUseCase {
     const expires = new Date(now.getTime() + parseInt(env.REFRESH_TOKEN_TTL, 10) * 1000);
     await this.tokens.deleteByToken(refreshToken);
     await this.tokens.save({
+      uuid: uuidv7(),
       token: newRefresh,
       userId: user.uuid,
       createdAt: now,

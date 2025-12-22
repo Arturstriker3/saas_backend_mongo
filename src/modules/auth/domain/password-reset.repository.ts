@@ -1,4 +1,5 @@
 export type PasswordResetRecord = {
+  uuid: string;
   token: string;
   userId: string;
   createdAt: Date;
