@@ -3,6 +3,7 @@ import {
   ApiTags,
   ApiBody,
   ApiOkResponse,
+  ApiCreatedResponse,
   ApiUnauthorizedResponse,
   ApiBadRequestResponse,
   ApiConflictResponse,
@@ -144,7 +145,7 @@ export class AuthController {
       },
     },
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     schema: {
       type: 'object',
       properties: {

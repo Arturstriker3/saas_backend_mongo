@@ -4,6 +4,7 @@ import { z } from 'zod';
 dotenv.config();
 
 const EnvSchema = z.object({
+  APP_NAME: z.string().default('Plataform'),
   NODE_ENV: z.string().default('development'),
   PORT: z.string().default('3000'),
   SKIP_DB_CONNECT: z.string().default('false'),

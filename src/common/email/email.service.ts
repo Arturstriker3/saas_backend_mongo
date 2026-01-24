@@ -27,7 +27,7 @@ export class EmailService {
       await this.resend.emails.send({
         from: env.RESEND_FROM,
         to,
-        subject: 'Welcome',
+        subject: `Welcome to ${env.APP_NAME}`,
         text: `
         Hi ${name},
 

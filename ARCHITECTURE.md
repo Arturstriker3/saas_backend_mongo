@@ -63,6 +63,14 @@ Example:
 - RabbitMQ metrics are scraped by Prometheus through the management exporter.
 - Grafana is provisioned via infra/grafana with dashboards for API and RabbitMQ.
 
+## Testing (Jest)
+
+- Tests live alongside the code they validate.
+- Use \*.spec.ts for unit tests.
+- Controllers are tested with simple mocks for use cases.
+- Use cases are tested with repository/service mocks and verify published events.
+- Run tests with npm test.
+
 ## Naming Conventions
 
 - Repository interfaces: <name>.repository.interface.ts

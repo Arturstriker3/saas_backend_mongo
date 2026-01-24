@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "test": "jest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
@@ -44,15 +45,25 @@
     "@types/bcrypt": "^6.0.0",
     "@types/amqplib": "^0.10.5",
     "@types/express": "^5.0.5",
+    "@types/jest": "^29.5.12",
     "@types/node": "^22.10.1",
     "@types/passport-jwt": "^4.0.1",
     "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.48.0",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^9.1.2",
+    "jest": "^29.7.0",
     "prettier": "^3.7.3",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.6.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/*.spec.ts"
+    ]
   }
 }
