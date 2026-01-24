@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { UserRepository } from '../../domain/user.repository.interface';
 import { UserEntity, USER_CONSTANTS } from '../../domain/user.entity';
-import { BcryptPasswordHasher } from '../../../auth/infrastructure/password-hasher.bcrypt';
+import { PasswordHasher } from '../../../auth/domain/password-hasher.interface';
 import { ROLES } from '../../../role/domain/role.types';
 
 export const CreateUserDTO = z.object({
@@ -16,9 +16,9 @@ export type CreateUserInputDTO = z.infer<typeof CreateUserDTO>;
 
 export class CreateUserUseCase {
   private readonly repo: UserRepository;
-  private readonly hasher: BcryptPasswordHasher;
+  private readonly hasher: PasswordHasher;
 
-  constructor(repo: UserRepository, hasher: BcryptPasswordHasher) {
+  constructor(repo: UserRepository, hasher: PasswordHasher) {
     this.repo = repo;
     this.hasher = hasher;
   }

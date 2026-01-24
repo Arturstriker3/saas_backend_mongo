@@ -5,7 +5,7 @@ import {
   PasswordResetRecord,
 } from '../../domain/password-reset.repository.interface';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
-import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcrypt';
+import { PasswordHasher } from '../../domain/password-hasher.interface';
 import { UserEntity, USER_CONSTANTS } from '../../../user/domain/user.entity';
 
 export const ConfirmPasswordResetDTO = z.object({
@@ -29,7 +29,7 @@ export class ConfirmPasswordResetUseCase {
   constructor(
     private readonly resets: PasswordResetRepository,
     private readonly users: UserRepository,
-    private readonly hasher: BcryptPasswordHasher,
+    private readonly hasher: PasswordHasher,
   ) {}
 
   async execute(input: ConfirmPasswordResetInputDTO): Promise<ConfirmPasswordResetOutputDTO> {

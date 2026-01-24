@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ConflictException } from '@nestjs/common';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
-import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcrypt';
+import { PasswordHasher } from '../../domain/password-hasher.interface';
 import { USER_CONSTANTS } from '../../../user/domain/user.entity';
 
 export const RegisterUserDTO = z.object({
@@ -26,7 +26,7 @@ export type RegisterUserOutputDTO = {
 export class RegisterUserUseCase {
   constructor(
     private readonly users: UserRepository,
-    private readonly hasher: BcryptPasswordHasher,
+    private readonly hasher: PasswordHasher,
   ) {}
 
   async execute(input: RegisterUserInputDTO): Promise<RegisterUserOutputDTO> {

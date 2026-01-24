@@ -9,18 +9,23 @@ import { ChangeUserNameUseCase } from './application/use-cases/change-user-name.
 import { ChangeUserPasswordUseCase } from './application/use-cases/change-user-password.use-case';
 import { DeactivateUserUseCase } from './application/use-cases/deactivate-user.use-case';
 import { UserController } from './presentation/rest/user.controller';
+import { PasswordHasher, PASSWORD_HASHER } from '../auth/domain/password-hasher.interface';
 import { BcryptPasswordHasher } from '../auth/infrastructure/password-hasher.bcrypt';
 
 @Module({
   imports: [DatabaseModule, RoleModule],
   providers: [
     BcryptPasswordHasher,
+    {
+      provide: PASSWORD_HASHER,
+      useExisting: BcryptPasswordHasher,
+    },
     UserRepositoryMongo,
     {
       provide: CreateUserUseCase,
-      useFactory: (repo: UserRepositoryMongo, hasher: BcryptPasswordHasher) =>
+      useFactory: (repo: UserRepositoryMongo, hasher: PasswordHasher) =>
         new CreateUserUseCase(repo, hasher),
-      inject: [UserRepositoryMongo, BcryptPasswordHasher],
+      inject: [UserRepositoryMongo, PASSWORD_HASHER],
     },
     {
       provide: ListUsersUseCase,
@@ -39,9 +44,9 @@ import { BcryptPasswordHasher } from '../auth/infrastructure/password-hasher.bcr
     },
     {
       provide: ChangeUserPasswordUseCase,
-      useFactory: (repo: UserRepositoryMongo, hasher: BcryptPasswordHasher) =>
+      useFactory: (repo: UserRepositoryMongo, hasher: PasswordHasher) =>
         new ChangeUserPasswordUseCase(repo, hasher),
-      inject: [UserRepositoryMongo, BcryptPasswordHasher],
+      inject: [UserRepositoryMongo, PASSWORD_HASHER],
     },
     {
       provide: DeactivateUserUseCase,

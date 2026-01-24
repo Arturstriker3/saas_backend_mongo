@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
-import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcrypt';
+import { PasswordHasher } from '../../domain/password-hasher.interface';
 import { RefreshTokenRepository } from '../../domain/refresh-token.repository.interface';
 import { loadEnv } from '../../../../common/config/env';
 import { randomBytes } from 'crypto';
@@ -23,7 +23,7 @@ export type AuthenticateUserOutputDTO = {
 export class AuthenticateUserUseCase {
   constructor(
     private readonly users: UserRepository,
-    private readonly hasher: BcryptPasswordHasher,
+    private readonly hasher: PasswordHasher,
     private readonly tokens: RefreshTokenRepository,
     private readonly jwt: JwtService,
   ) {}

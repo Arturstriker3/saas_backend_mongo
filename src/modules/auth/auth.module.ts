@@ -8,6 +8,7 @@ import { RoleModule } from '../role/role.module';
 import { UserRepository } from '../user/domain/user.repository.interface';
 import { UserRepositoryMongo } from '../user/infrastructure/user.repository.mongo';
 import { RefreshTokenRepository } from './domain/refresh-token.repository.interface';
+import { PasswordHasher, PASSWORD_HASHER } from './domain/password-hasher.interface';
 import { BcryptPasswordHasher } from './infrastructure/password-hasher.bcrypt';
 import { AuthenticateUserUseCase } from './application/use-cases/authenticate-user.use-case';
 import { RefreshTokenUseCase } from './application/use-cases/refresh-token.use-case';
@@ -51,6 +52,10 @@ import {
     EmailService,
     BcryptPasswordHasher,
     {
+      provide: PASSWORD_HASHER,
+      useExisting: BcryptPasswordHasher,
+    },
+    {
       provide: REFRESH_TOKEN_MODEL,
       useFactory: (conn: MongooseConnection) =>
         conn.model('refresh_tokens', makeRefreshTokenSchema()),
@@ -68,11 +73,11 @@ import {
       provide: AuthenticateUserUseCase,
       useFactory: (
         users: UserRepository,
-        hasher: BcryptPasswordHasher,
+        hasher: PasswordHasher,
         tokens: RefreshTokenRepository,
         jwt: JwtService,
       ) => new AuthenticateUserUseCase(users, hasher, tokens, jwt),
-      inject: [UserRepositoryMongo, BcryptPasswordHasher, RefreshTokenRepositoryMongo, JwtService],
+      inject: [UserRepositoryMongo, PASSWORD_HASHER, RefreshTokenRepositoryMongo, JwtService],
     },
     {
       provide: RefreshTokenUseCase,
@@ -96,15 +101,15 @@ import {
       useFactory: (
         resets: PasswordResetRepository,
         users: UserRepository,
-        hasher: BcryptPasswordHasher,
+        hasher: PasswordHasher,
       ) => new ConfirmPasswordResetUseCase(resets, users, hasher),
-      inject: [PasswordResetRepositoryMongo, UserRepositoryMongo, BcryptPasswordHasher],
+      inject: [PasswordResetRepositoryMongo, UserRepositoryMongo, PASSWORD_HASHER],
     },
     {
       provide: RegisterUserUseCase,
-      useFactory: (users: UserRepository, hasher: BcryptPasswordHasher) =>
+      useFactory: (users: UserRepository, hasher: PasswordHasher) =>
         new RegisterUserUseCase(users, hasher),
-      inject: [UserRepositoryMongo, BcryptPasswordHasher],
+      inject: [UserRepositoryMongo, PASSWORD_HASHER],
     },
     {
       provide: GetMeUseCase,
