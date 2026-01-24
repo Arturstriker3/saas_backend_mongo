@@ -21,7 +21,10 @@ export function makePasswordResetSchema() {
   });
 }
 
-import { PasswordResetRepository, PasswordResetRecord } from '../domain/password-reset.repository';
+import {
+  PasswordResetRepository,
+  PasswordResetRecord,
+} from '../domain/password-reset.repository.interface';
 
 export class PasswordResetRepositoryMongo implements PasswordResetRepository {
   private readonly model: Model<PasswordResetDoc>;

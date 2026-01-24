@@ -3,8 +3,8 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   PasswordResetRepository,
   PasswordResetRecord,
-} from '../../domain/password-reset.repository';
-import { UserRepository } from '../../../user/domain/user.repository';
+} from '../../domain/password-reset.repository.interface';
+import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcrypt';
 import { UserEntity, USER_CONSTANTS } from '../../../user/domain/user.entity';
 
@@ -37,7 +37,8 @@ export class ConfirmPasswordResetUseCase {
     const record = await this.getValidResetRecord(token);
     const user = await this.getExistingUser(record.userId);
     const hash = await this.hasher.hash(newPassword);
-    user.changePassword(hash);
+    user.passwordHash = hash;
+    user.updatedAt = new Date();
     await this.users.save(user);
     await this.resets.deleteByToken(token);
     return {

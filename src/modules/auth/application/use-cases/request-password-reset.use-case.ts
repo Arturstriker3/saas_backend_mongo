@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { UserRepository } from '../../../user/domain/user.repository';
-import { PasswordResetRepository } from '../../domain/password-reset.repository';
+import { UserRepository } from '../../../user/domain/user.repository.interface';
+import { PasswordResetRepository } from '../../domain/password-reset.repository.interface';
 import { EmailService } from '../../../../common/email/email.service';
 import { loadEnv } from '../../../../common/config/env';
 import { randomBytes } from 'crypto';

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ConflictException } from '@nestjs/common';
-import { UserRepository } from '../../../user/domain/user.repository';
+import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcrypt';
 import { USER_CONSTANTS } from '../../../user/domain/user.entity';
 

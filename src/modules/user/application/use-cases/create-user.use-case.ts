@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserRepository } from '../../domain/user.repository';
+import { UserRepository } from '../../domain/user.repository.interface';
 import { UserEntity, USER_CONSTANTS } from '../../domain/user.entity';
 import { BcryptPasswordHasher } from '../../../auth/infrastructure/password-hasher.bcrypt';
 import { ROLES } from '../../../role/domain/role.types';

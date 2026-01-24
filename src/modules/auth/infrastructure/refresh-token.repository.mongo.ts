@@ -21,7 +21,10 @@ export function makeRefreshTokenSchema() {
   });
 }
 
-import { RefreshTokenRepository, RefreshTokenRecord } from '../domain/auth.repository';
+import {
+  RefreshTokenRepository,
+  RefreshTokenRecord,
+} from '../domain/refresh-token.repository.interface';
 
 export class RefreshTokenRepositoryMongo implements RefreshTokenRepository {
   private readonly model: Model<RefreshTokenDoc>;

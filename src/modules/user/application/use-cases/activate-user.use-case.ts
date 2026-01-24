@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserRepository } from '../../domain/user.repository';
+import { UserRepository } from '../../domain/user.repository.interface';
 
 export const ActivateUserDTO = z.object({ uuid: z.string().min(1) });
 export type ActivateUserInputDTO = z.infer<typeof ActivateUserDTO>;
@@ -15,7 +15,10 @@ export class ActivateUserUseCase {
     const { uuid } = ActivateUserDTO.parse(input);
     const user = await this.repo.findById(uuid);
     if (!user) throw new Error('User not found');
-    user.activate();
+    if (!user.isActive) {
+      user.isActive = true;
+      user.updatedAt = new Date();
+    }
     await this.repo.save(user);
     return user;
   }

@@ -24,10 +24,6 @@ export type UserEntity = Document & {
   updatedAt: Date;
   isActive: boolean;
   credits: number;
-  activate: () => void;
-  deactivate: () => void;
-  changePassword: (newHash: string) => void;
-  changeName: (newName: string) => void;
 };
 
 export function makeUserSchema() {
@@ -66,30 +62,6 @@ export function makeUserSchema() {
       required: true,
     },
   });
-
-  schema.methods.activate = function () {
-    if (this.isActive) return;
-    this.isActive = true;
-    this.updatedAt = new Date();
-  };
-
-  schema.methods.deactivate = function () {
-    if (!this.isActive) return;
-    this.isActive = false;
-    this.updatedAt = new Date();
-  };
-
-  schema.methods.changePassword = function (newHash: string) {
-    if (!newHash) return;
-    this.passwordHash = newHash;
-    this.updatedAt = new Date();
-  };
-
-  schema.methods.changeName = function (newName: string) {
-    if (!newName || newName.length < USER_CONSTANTS.NAME_MIN_LENGTH) return;
-    this.name = newName.trim();
-    this.updatedAt = new Date();
-  };
 
   return schema;
 }

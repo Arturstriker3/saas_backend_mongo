@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserRepository } from '../../domain/user.repository';
+import { UserRepository } from '../../domain/user.repository.interface';
 import { BcryptPasswordHasher } from '../../../auth/infrastructure/password-hasher.bcrypt';
 import { USER_CONSTANTS } from '../../domain/user.entity';
 
@@ -23,7 +23,8 @@ export class ChangeUserPasswordUseCase {
     const user = await this.repo.findById(uuid);
     if (!user) throw new Error('User not found');
     const hash = await this.hasher.hash(newPassword);
-    user.changePassword(hash);
+    user.passwordHash = hash;
+    user.updatedAt = new Date();
     await this.repo.save(user);
     return user;
   }

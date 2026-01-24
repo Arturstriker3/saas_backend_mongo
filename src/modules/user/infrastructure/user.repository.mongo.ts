@@ -1,6 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { UserRepository } from '../domain/user.repository';
+import { UserRepository } from '../domain/user.repository.interface';
 import { UserEntity, USER_CONSTANTS, makeUserSchema } from '../domain/user.entity';
 import { v7 as uuidv7 } from 'uuid';
 import { MONGO_CONNECTION, MongooseConnection } from '../../../common/database/mongo.connection';

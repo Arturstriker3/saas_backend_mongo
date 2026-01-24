@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RefreshTokenRepository } from '../../domain/auth.repository';
+import { RefreshTokenRepository } from '../../domain/refresh-token.repository.interface';
 
 export const LogoutDTO = z.object({ refreshToken: z.string().min(1) });
 export type LogoutInputDTO = z.infer<typeof LogoutDTO>;

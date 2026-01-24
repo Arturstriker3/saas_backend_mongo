@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserRepository } from '../../domain/user.repository';
+import { UserRepository } from '../../domain/user.repository.interface';
 
 export const ChangeUserNameDTO = z.object({ uuid: z.string().min(1), name: z.string().min(3) });
 export type ChangeUserNameInputDTO = z.infer<typeof ChangeUserNameDTO>;
@@ -15,7 +15,8 @@ export class ChangeUserNameUseCase {
     const { uuid, name } = ChangeUserNameDTO.parse(input);
     const user = await this.repo.findById(uuid);
     if (!user) throw new Error('User not found');
-    user.changeName(name);
+    user.name = name.trim();
+    user.updatedAt = new Date();
     await this.repo.save(user);
     return user;
   }

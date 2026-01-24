@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
-import { UserRepository } from '../../../user/domain/user.repository';
+import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { BcryptPasswordHasher } from '../../infrastructure/password-hasher.bcrypt';
-import { RefreshTokenRepository } from '../../domain/auth.repository';
+import { RefreshTokenRepository } from '../../domain/refresh-token.repository.interface';
 import { loadEnv } from '../../../../common/config/env';
 import { randomBytes } from 'crypto';
 import { v7 as uuidv7 } from 'uuid';

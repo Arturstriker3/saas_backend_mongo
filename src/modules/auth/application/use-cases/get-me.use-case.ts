@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { NotFoundException } from '@nestjs/common';
-import { UserRepository } from '../../../user/domain/user.repository';
+import { UserRepository } from '../../../user/domain/user.repository.interface';
 
 export const GetMeDTO = z.object({ userId: z.string().min(1) });
 export type GetMeInputDTO = z.infer<typeof GetMeDTO>;
@@ -35,4 +35,3 @@ export class GetMeUseCase {
     };
   }
 }
-
