@@ -7,7 +7,7 @@ This document is the source of truth for how the codebase is organized. Follow i
 ## High-Level Structure
 
 - src/modules: business modules, isolated by domain
-- src/common: cross-cutting concerns (config, database, email, http)
+- src/common: cross-cutting concerns (config, database, email, http, messaging, metrics)
 - src/app.module.ts: root module that wires everything together
 - src/main.ts: application bootstrap
 
@@ -47,6 +47,21 @@ Example:
 - Domain service interfaces (e.g. PasswordHasher) live in domain and are injected via tokens.
 - Infrastructure implements repository interfaces and is the only layer that touches external services.
 - Presentation is responsible for HTTP transport and mapping input/output.
+
+## Messaging & Events
+
+- Event publishing uses an EventBus interface in src/common/messaging.
+- Use cases publish domain events; they never depend on RabbitMQ or email adapters.
+- Infrastructure provides RabbitMQ implementations and consumers under src/common.
+- Email consumers live outside the domain and apply feature toggles via env.
+- The design supports running API and workers as separate processes.
+
+## Metrics & Observability
+
+- API exposes Prometheus metrics via /metrics when enabled by env.
+- src/common/metrics centralizes metrics collection and HTTP instrumentation.
+- RabbitMQ metrics are scraped by Prometheus through the management exporter.
+- Grafana is provisioned via infra/grafana with dashboards for API and RabbitMQ.
 
 ## Naming Conventions
 

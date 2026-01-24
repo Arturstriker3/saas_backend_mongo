@@ -6,6 +6,7 @@ import { loadEnv } from './common/config/env';
 import { runSeed } from './common/database/seed/seed';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { MetricsService } from './common/metrics/metrics.service';
+import { RabbitMQConnection, RABBITMQ_CONNECTION } from './common/messaging/rabbitmq.connection';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,6 +15,10 @@ async function bootstrap() {
     const metrics = app.get(MetricsService);
     app.use(metrics.httpMiddleware());
   }
+  const rabbit = app.get<RabbitMQConnection>(RABBITMQ_CONNECTION);
+  const channel = await rabbit.createChannel();
+  await channel.assertExchange(env.RABBITMQ_EXCHANGE, 'topic', { durable: true });
+  await channel.close();
   if (env.DOCS_ENABLED === 'true') {
     const config = new DocumentBuilder()
       .setTitle(env.DOCS_TITLE)
@@ -28,6 +33,6 @@ async function bootstrap() {
   }
   await app.listen(parseInt(env.PORT, 10));
   const base = `http://localhost:${parseInt(env.PORT, 10)}`;
-  Logger.log(`API listening on ${base}`, 'Bootstrap');
+  Logger.log(`🟢 API listening on ${base}`, 'Bootstrap');
 }
 bootstrap();

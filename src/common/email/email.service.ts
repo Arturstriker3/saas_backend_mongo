@@ -28,7 +28,17 @@ export class EmailService {
         from: env.RESEND_FROM,
         to,
         subject: 'Welcome',
-        text: `Welcome ${name}!`,
+        text: `
+        Hi ${name},
+
+        Welcome aboard! Your account has been successfully created.
+
+        You’re all set to start using the platform.
+        If you need any assistance, just let us know — we’ll be happy to help.
+
+        Best regards,
+        The Team
+        `,
       });
     } catch (err: unknown) {
       const nameValue = (err as any)?.name as string | undefined;
