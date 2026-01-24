@@ -3,6 +3,9 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { loadEnv } from '../../common/config/env';
 import { DatabaseModule } from '../../common/database/database.module';
+import { EmailModule } from '../../common/email/email.module';
+import { MessagingModule } from '../../common/messaging/messaging.module';
+import { EVENT_BUS } from '../../common/messaging/event-bus.interface';
 import { UserModule } from '../user/user.module';
 import { RoleModule } from '../role/role.module';
 import { UserRepository } from '../user/domain/user.repository.interface';
@@ -18,8 +21,6 @@ import { JwtStrategy } from './presentation/jwt.strategy';
 import { PasswordResetRepository } from './domain/password-reset.repository.interface';
 import { RequestPasswordResetUseCase } from './application/use-cases/request-password-reset.use-case';
 import { ConfirmPasswordResetUseCase } from './application/use-cases/confirm-password-reset.use-case';
-import { resendClientProvider } from '../../common/email/resend.client';
-import { EmailService } from '../../common/email/email.service';
 import { RegisterUserUseCase } from './application/use-cases/register-user.use-case';
 import { GetMeUseCase } from './application/use-cases/get-me.use-case';
 import { MONGO_CONNECTION, MongooseConnection } from '../../common/database/mongo.connection';
@@ -39,6 +40,8 @@ import {
     DatabaseModule,
     UserModule,
     RoleModule,
+    EmailModule,
+    MessagingModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => {
@@ -48,8 +51,6 @@ import {
     }),
   ],
   providers: [
-    resendClientProvider,
-    EmailService,
     BcryptPasswordHasher,
     {
       provide: PASSWORD_HASHER,
@@ -92,9 +93,9 @@ import {
     },
     {
       provide: RequestPasswordResetUseCase,
-      useFactory: (users: UserRepository, resets: PasswordResetRepository, email: EmailService) =>
-        new RequestPasswordResetUseCase(users, resets, email),
-      inject: [UserRepositoryMongo, PasswordResetRepositoryMongo, EmailService],
+      useFactory: (users: UserRepository, resets: PasswordResetRepository, events: any) =>
+        new RequestPasswordResetUseCase(users, resets, events),
+      inject: [UserRepositoryMongo, PasswordResetRepositoryMongo, EVENT_BUS],
     },
     {
       provide: ConfirmPasswordResetUseCase,
@@ -107,9 +108,9 @@ import {
     },
     {
       provide: RegisterUserUseCase,
-      useFactory: (users: UserRepository, hasher: PasswordHasher) =>
-        new RegisterUserUseCase(users, hasher),
-      inject: [UserRepositoryMongo, PASSWORD_HASHER],
+      useFactory: (users: UserRepository, hasher: PasswordHasher, events: any) =>
+        new RegisterUserUseCase(users, hasher, events),
+      inject: [UserRepositoryMongo, PASSWORD_HASHER, EVENT_BUS],
     },
     {
       provide: GetMeUseCase,

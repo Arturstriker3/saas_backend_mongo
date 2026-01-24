@@ -20,4 +20,36 @@ export class EmailService {
       throw err;
     }
   }
+
+  async sendWelcome(to: string, name: string): Promise<void> {
+    const env = loadEnv();
+    try {
+      await this.resend.emails.send({
+        from: env.RESEND_FROM,
+        to,
+        subject: 'Welcome',
+        text: `Welcome ${name}!`,
+      });
+    } catch (err: unknown) {
+      const nameValue = (err as any)?.name as string | undefined;
+      if (nameValue === 'validation_error') return;
+      throw err;
+    }
+  }
+
+  async sendOrderConfirmation(to: string, orderId: string): Promise<void> {
+    const env = loadEnv();
+    try {
+      await this.resend.emails.send({
+        from: env.RESEND_FROM,
+        to,
+        subject: 'Order Confirmation',
+        text: `Order confirmed: ${orderId}`,
+      });
+    } catch (err: unknown) {
+      const nameValue = (err as any)?.name as string | undefined;
+      if (nameValue === 'validation_error') return;
+      throw err;
+    }
+  }
 }

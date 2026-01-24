@@ -3,6 +3,8 @@ import { ConflictException } from '@nestjs/common';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { PasswordHasher } from '../../domain/password-hasher.interface';
 import { USER_CONSTANTS } from '../../../user/domain/user.entity';
+import { EventBus } from '../../../../common/messaging/event-bus.interface';
+import { UserRegisteredEvent } from '../../../../common/messaging/events';
 
 export const RegisterUserDTO = z.object({
   name: z.string().min(USER_CONSTANTS.NAME_MIN_LENGTH).max(USER_CONSTANTS.NAME_MAX_LENGTH),
@@ -27,6 +29,7 @@ export class RegisterUserUseCase {
   constructor(
     private readonly users: UserRepository,
     private readonly hasher: PasswordHasher,
+    private readonly events: EventBus,
   ) {}
 
   async execute(input: RegisterUserInputDTO): Promise<RegisterUserOutputDTO> {
@@ -41,6 +44,12 @@ export class RegisterUserUseCase {
       role: USER_CONSTANTS.ROLE_DEFAULT,
       credits: USER_CONSTANTS.CREDITS_DEFAULT,
     });
+    const event: UserRegisteredEvent = {
+      name: 'UserRegistered',
+      payload: { userId: entity.uuid, email: entity.email, name: entity.name },
+      occurredAt: new Date(),
+    };
+    await this.events.publish(event);
     return {
       uuid: entity.uuid,
       name: entity.name,

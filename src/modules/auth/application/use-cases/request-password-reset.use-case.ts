@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { PasswordResetRepository } from '../../domain/password-reset.repository.interface';
-import { EmailService } from '../../../../common/email/email.service';
 import { loadEnv } from '../../../../common/config/env';
 import { randomBytes } from 'crypto';
 import { v7 as uuidv7 } from 'uuid';
+import { EventBus } from '../../../../common/messaging/event-bus.interface';
+import { PasswordResetRequestedEvent } from '../../../../common/messaging/events';
 
 export const RequestPasswordResetDTO = z.object({ email: z.string().email() });
 export type RequestPasswordResetInputDTO = z.infer<typeof RequestPasswordResetDTO>;
@@ -13,7 +14,7 @@ export class RequestPasswordResetUseCase {
   constructor(
     private readonly users: UserRepository,
     private readonly resets: PasswordResetRepository,
-    private readonly email: EmailService,
+    private readonly events: EventBus,
   ) {}
 
   async execute(input: RequestPasswordResetInputDTO): Promise<boolean> {
@@ -31,7 +32,12 @@ export class RequestPasswordResetUseCase {
       createdAt: now,
       expiresAt: expires,
     });
-    await this.email.sendPasswordReset(user.email, token);
+    const event: PasswordResetRequestedEvent = {
+      name: 'PasswordResetRequested',
+      payload: { email: user.email, token },
+      occurredAt: new Date(),
+    };
+    await this.events.publish(event);
     return true;
   }
 }

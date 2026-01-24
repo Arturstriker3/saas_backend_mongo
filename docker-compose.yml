@@ -19,6 +19,53 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: saas_rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+      - '15692:15692'
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    env_file:
+      - .env
+    restart: unless-stopped
+    command: sh -c "rabbitmq-plugins enable --offline rabbitmq_prometheus && rabbitmq-server"
+    healthcheck:
+      test: ['CMD-SHELL', 'rabbitmq-diagnostics -q ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: saas_prometheus
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: saas_grafana
+    ports:
+      - '3001:3000'
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
 
 volumes:
   mongo_data:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
