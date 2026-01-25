@@ -7,13 +7,15 @@ import { runSeed } from './common/database/seed/seed';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { MetricsService } from './common/metrics/metrics.service';
 import { RabbitMQConnection, RABBITMQ_CONNECTION } from './common/messaging/rabbitmq.connection';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
   const env = loadEnv();
   if (env.METRICS_ENABLED === 'true') {
     const metrics = app.get(MetricsService);
-    app.use(metrics.httpMiddleware());
+    const fastify = app.getHttpAdapter().getInstance();
+    metrics.registerHttpMetrics(fastify);
   }
   const rabbit = app.get<RabbitMQConnection>(RABBITMQ_CONNECTION);
   const channel = await rabbit.createChannel();

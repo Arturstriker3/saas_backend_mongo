@@ -15,7 +15,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "types": ["node", "jest"],
+    "types": ["bun-types", "node"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },

@@ -10,6 +10,8 @@ This document is the source of truth for how the codebase is organized. Follow i
 - src/common: cross-cutting concerns (config, database, email, http, messaging, metrics)
 - src/app.module.ts: root module that wires everything together
 - src/main.ts: application bootstrap
+- HTTP adapter: Fastify via @nestjs/platform-fastify
+- Runtime, package manager, and bundler: Bun
 
 ## Module Layout
 
@@ -63,13 +65,20 @@ Example:
 - RabbitMQ metrics are scraped by Prometheus through the management exporter.
 - Grafana is provisioned via infra/grafana with dashboards for API and RabbitMQ.
 
-## Testing (Jest)
+## Testing (Bun)
 
 - Tests live alongside the code they validate.
 - Use \*.spec.ts for unit tests.
 - Controllers are tested with simple mocks for use cases.
 - Use cases are tested with repository/service mocks and verify published events.
-- Run tests with npm test.
+- Run tests with bun test.
+## Runtime (Bun)
+
+- Package manager: bun install.
+- Dev server runs with nest start --watch.
+- Build uses nest build and start uses node dist/main.js.
+- Lint, format, and typecheck run through npm scripts.
+- Bundling uses bun build (see npm run bundle).
 
 ## Naming Conventions
 

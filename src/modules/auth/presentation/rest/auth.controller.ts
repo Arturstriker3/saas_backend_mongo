@@ -9,33 +9,34 @@ import {
   ApiConflictResponse,
   ApiNotFoundResponse,
 } from '@nestjs/swagger';
-import { Request } from 'express';
-import {
-  AuthenticateUserUseCase,
-  AuthenticateUserOutputDTO,
-  LoginInputDTO,
-} from '../../application/use-cases/authenticate-user.use-case';
+import type { FastifyRequest } from 'fastify';
+import { AuthenticateUserUseCase } from '../../application/use-cases/authenticate-user.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import { RequestPasswordResetUseCase } from '../../application/use-cases/request-password-reset.use-case';
 import { ConfirmPasswordResetUseCase } from '../../application/use-cases/confirm-password-reset.use-case';
 import { RegisterUserUseCase } from '../../application/use-cases/register-user.use-case';
-import {
-  RegisterUserOutputDTO,
-  RegisterUserInputDTO,
-} from '../../application/use-cases/register-user.use-case';
-import {
+import type {
+  AuthenticateUserOutputDTO,
+  LoginInputDTO,
+} from '../../application/use-cases/authenticate-user.use-case';
+import type {
   RefreshInputDTO,
   RefreshTokenOutputDTO,
 } from '../../application/use-cases/refresh-token.use-case';
-import { LogoutInputDTO } from '../../application/use-cases/logout.use-case';
-import { RequestPasswordResetInputDTO } from '../../application/use-cases/request-password-reset.use-case';
-import {
+import type { LogoutInputDTO } from '../../application/use-cases/logout.use-case';
+import type { RequestPasswordResetInputDTO } from '../../application/use-cases/request-password-reset.use-case';
+import type {
   ConfirmPasswordResetInputDTO,
   ConfirmPasswordResetOutputDTO,
 } from '../../application/use-cases/confirm-password-reset.use-case';
+import type {
+  RegisterUserOutputDTO,
+  RegisterUserInputDTO,
+} from '../../application/use-cases/register-user.use-case';
 import { Public, Authenticated } from '../../../../common/http/access.decorator';
-import { GetMeUseCase, GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
+import { GetMeUseCase } from '../../application/use-cases/get-me.use-case';
+import type { GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -118,7 +119,9 @@ export class AuthController {
   @ApiNotFoundResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
-  async me(@Req() req: Request & { user: { userId: string } }): Promise<GetMeOutputDTO> {
+  async me(
+    @Req() req: FastifyRequest & { user: { userId: string } },
+  ): Promise<GetMeOutputDTO> {
     return this.getMeUseCase.execute({ userId: req.user.userId });
   }
 

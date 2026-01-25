@@ -1,31 +1,85 @@
 import { ConflictException } from '@nestjs/common';
+import { describe, it, expect } from 'bun:test';
 import { RegisterUserUseCase } from './register-user.use-case';
-import type { UserRepository } from '../../../user/domain/user.repository.interface';
-import type { PasswordHasher } from '../../domain/password-hasher.interface';
-import type { EventBus } from '../../../../common/messaging/event-bus.interface';
 import type { UserEntity } from '../../../user/domain/user.entity';
+import type { DomainEvent } from '../../../../common/messaging/events';
+
+type MockFunction<Args extends unknown[] = unknown[], Return = unknown> = ((
+  ...args: Args
+) => Return) & {
+  calls: Args[];
+  setResolvedValue: (value: Awaited<Return>) => void;
+  setImplementation: (impl: (...args: Args) => Return) => void;
+};
+
+type UserRepositoryMock = {
+  create: MockFunction<
+    [
+      {
+        name: string;
+        email: string;
+        passwordHash: string;
+        role: string;
+        credits: number;
+      },
+    ],
+    Promise<UserEntity>
+  >;
+  findAll: MockFunction<[], Promise<UserEntity[]>>;
+  findById: MockFunction<[string], Promise<UserEntity | null>>;
+  findByEmail: MockFunction<[string], Promise<UserEntity | null>>;
+  save: MockFunction<[UserEntity], Promise<void>>;
+};
+
+type PasswordHasherMock = {
+  hash: MockFunction<[string], Promise<string>>;
+  compare: MockFunction<[string, string], Promise<boolean>>;
+};
+
+type EventBusMock = {
+  publish: MockFunction<[DomainEvent], Promise<void>>;
+};
 
 type TestDeps = {
-  users: UserRepository;
-  hasher: PasswordHasher;
-  events: EventBus;
+  users: UserRepositoryMock;
+  hasher: PasswordHasherMock;
+  events: EventBusMock;
 };
+
+function createMock<Args extends unknown[] = unknown[], Return = unknown>(): MockFunction<
+  Args,
+  Return
+> {
+  let impl: (...args: Args) => Return = () => undefined as Return;
+  const fn = ((...args: Args) => {
+    fn.calls.push(args);
+    return impl(...args);
+  }) as MockFunction<Args, Return>;
+  fn.calls = [];
+  fn.setResolvedValue = (value) => {
+    impl = () => Promise.resolve(value) as Return;
+  };
+  fn.setImplementation = (newImpl) => {
+    impl = newImpl;
+  };
+  return fn;
+}
 
 function createDeps(): TestDeps {
   return {
     users: {
-      create: jest.fn(),
-      findAll: jest.fn(),
-      findById: jest.fn(),
-      findByEmail: jest.fn(),
-      save: jest.fn(),
+      create: createMock(),
+      findAll: createMock(),
+      findById: createMock(),
+      findByEmail: createMock(),
+      save: createMock(),
     },
     hasher: {
-      hash: jest.fn(),
-      compare: jest.fn(),
+      hash: createMock(),
+      compare: createMock(),
     },
     events: {
-      publish: jest.fn(),
+      publish: createMock(),
     },
   };
 }
@@ -51,36 +105,41 @@ describe('RegisterUserUseCase', () => {
       isActive: true,
       credits: 0,
     } as UserEntity;
-    (deps.users.findByEmail as jest.Mock).mockResolvedValue(null);
-    (deps.hasher.hash as jest.Mock).mockResolvedValue('hashed');
-    (deps.users.create as jest.Mock).mockResolvedValue(entity);
+    deps.users.findByEmail.setResolvedValue(null);
+    deps.hasher.hash.setResolvedValue('hashed');
+    deps.users.create.setResolvedValue(entity);
 
     const result = await useCase.execute(input);
 
-    expect(deps.users.findByEmail).toHaveBeenCalledWith('john.doe@example.com');
-    expect(deps.hasher.hash).toHaveBeenCalledWith(input.password);
-    expect(deps.users.create).toHaveBeenCalledWith({
+    expect(deps.users.findByEmail.calls).toEqual([['john.doe@example.com']]);
+    expect(deps.hasher.hash.calls).toEqual([[input.password]]);
+    expect(deps.users.create.calls).toEqual([
+      [
+        {
+          name: input.name,
+          email: input.email,
+          passwordHash: 'hashed',
+          role: 'USER',
+          credits: 0,
+        },
+      ],
+    ]);
+    const published = deps.events.publish.calls[0]?.[0] as {
+      name: string;
+      payload: { userId: string; email: string; name: string };
+      occurredAt: Date;
+    };
+    expect(published.name).toBe('UserRegistered');
+    expect(published.payload).toEqual({
+      userId: entity.uuid,
+      email: entity.email,
+      name: entity.name,
+    });
+    expect(published.occurredAt).toBeInstanceOf(Date);
+    expect(result).toEqual({
       name: input.name,
       email: input.email,
-      passwordHash: 'hashed',
-      role: 'USER',
-      credits: 0,
-    });
-    expect(deps.events.publish).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'UserRegistered',
-        payload: {
-          userId: entity.uuid,
-          email: entity.email,
-          name: entity.name,
-        },
-        occurredAt: expect.any(Date),
-      }),
-    );
-    expect(result).toEqual({
       uuid: entity.uuid,
-      name: entity.name,
-      email: entity.email,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       isActive: entity.isActive,
@@ -97,11 +156,17 @@ describe('RegisterUserUseCase', () => {
       email: 'john.doe@example.com',
       password: 'password123',
     };
-    (deps.users.findByEmail as jest.Mock).mockResolvedValue({ uuid: 'existing' });
+    deps.users.findByEmail.setResolvedValue({ uuid: 'existing' } as UserEntity);
 
-    await expect(useCase.execute(input)).rejects.toBeInstanceOf(ConflictException);
+    let error: unknown;
+    try {
+      await useCase.execute(input);
+    } catch (err) {
+      error = err;
+    }
 
-    expect(deps.users.create).not.toHaveBeenCalled();
-    expect(deps.events.publish).not.toHaveBeenCalled();
+    expect(error).toBeInstanceOf(ConflictException);
+    expect(deps.users.create.calls.length).toBe(0);
+    expect(deps.events.publish.calls.length).toBe(0);
   });
 });

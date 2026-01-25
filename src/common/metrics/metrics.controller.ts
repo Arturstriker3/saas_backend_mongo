@@ -1,5 +1,5 @@
 import { Controller, Get, NotFoundException, Res } from '@nestjs/common';
-import { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { loadEnv } from '../config/env';
 import { MetricsService } from './metrics.service';
 
@@ -10,12 +10,12 @@ export class MetricsController {
   constructor(private readonly metrics: MetricsService) {}
 
   @Get()
-  async getMetrics(@Res() res: Response): Promise<void> {
+  async getMetrics(@Res() res: FastifyReply): Promise<void> {
     if (env.METRICS_ENABLED !== 'true') {
       throw new NotFoundException();
     }
     const body = await this.metrics.metrics();
-    res.setHeader('Content-Type', this.metrics.contentType);
+    res.header('Content-Type', this.metrics.contentType);
     res.send(body);
   }
 }
