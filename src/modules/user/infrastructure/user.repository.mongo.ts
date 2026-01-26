@@ -36,22 +36,61 @@ export class UserRepositoryMongo implements UserRepository {
   }
 
   async findAll(): Promise<UserEntity[]> {
-    const docs = await this.model.find({}).select('+passwordHash');
+    const docs = await this.model
+      .find({})
+      .select('uuid name email createdAt updatedAt isActive role credits')
+      .lean();
     return docs as unknown as UserEntity[];
   }
 
   async findById(id: string): Promise<UserEntity | null> {
-    const doc = await this.model.findOne({ uuid: id }).select('+passwordHash');
+    const doc = await this.model
+      .findOne({ uuid: id })
+      .select('uuid name email createdAt updatedAt isActive role credits')
+      .lean();
     return (doc as UserEntity) ?? null;
-  }
-
-  async save(user: UserEntity): Promise<void> {
-    user.updatedAt = new Date();
-    await (user as any).save();
   }
 
   async findByEmail(email: string): Promise<UserEntity | null> {
-    const doc = await this.model.findOne({ email: email.toLowerCase() }).select('+passwordHash');
+    const doc = await this.model
+      .findOne({ email: email.toLowerCase() })
+      .select('uuid name email createdAt updatedAt isActive role credits')
+      .lean();
     return (doc as UserEntity) ?? null;
+  }
+
+  async findByEmailWithPassword(email: string): Promise<UserEntity | null> {
+    const doc = await this.model
+      .findOne({ email: email.toLowerCase() })
+      .select('uuid name email createdAt updatedAt isActive role credits +passwordHash')
+      .lean();
+    return (doc as UserEntity) ?? null;
+  }
+
+  async existsByEmail(email: string): Promise<boolean> {
+    const exists = await this.model.exists({ email: email.toLowerCase() });
+    return Boolean(exists);
+  }
+
+  async updateNameById(id: string, name: string, updatedAt: Date): Promise<boolean> {
+    const result = await this.model.updateOne({ uuid: id }, { $set: { name, updatedAt } });
+    return result.matchedCount > 0;
+  }
+
+  async updatePasswordById(
+    id: string,
+    passwordHash: string,
+    updatedAt: Date,
+  ): Promise<boolean> {
+    const result = await this.model.updateOne(
+      { uuid: id },
+      { $set: { passwordHash, updatedAt } },
+    );
+    return result.matchedCount > 0;
+  }
+
+  async updateActiveById(id: string, isActive: boolean, updatedAt: Date): Promise<boolean> {
+    const result = await this.model.updateOne({ uuid: id }, { $set: { isActive, updatedAt } });
+    return result.matchedCount > 0;
   }
 }

@@ -15,9 +15,9 @@ export class ChangeUserNameUseCase {
     const { uuid, name } = ChangeUserNameDTO.parse(input);
     const user = await this.repo.findById(uuid);
     if (!user) throw new Error('User not found');
-    user.name = name.trim();
-    user.updatedAt = new Date();
-    await this.repo.save(user);
-    return user;
+    const trimmed = name.trim();
+    const updatedAt = new Date();
+    await this.repo.updateNameById(uuid, trimmed, updatedAt);
+    return { ...user, name: trimmed, updatedAt };
   }
 }

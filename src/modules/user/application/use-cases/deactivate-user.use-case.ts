@@ -15,11 +15,9 @@ export class DeactivateUserUseCase {
     const { uuid } = DeactivateUserDTO.parse(input);
     const user = await this.repo.findById(uuid);
     if (!user) throw new Error('User not found');
-    if (user.isActive) {
-      user.isActive = false;
-      user.updatedAt = new Date();
-    }
-    await this.repo.save(user);
-    return user;
+    if (!user.isActive) return user;
+    const updatedAt = new Date();
+    await this.repo.updateActiveById(uuid, false, updatedAt);
+    return { ...user, isActive: false, updatedAt };
   }
 }

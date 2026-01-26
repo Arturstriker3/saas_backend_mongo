@@ -23,9 +23,8 @@ export class ChangeUserPasswordUseCase {
     const user = await this.repo.findById(uuid);
     if (!user) throw new Error('User not found');
     const hash = await this.hasher.hash(newPassword);
-    user.passwordHash = hash;
-    user.updatedAt = new Date();
-    await this.repo.save(user);
-    return user;
+    const updatedAt = new Date();
+    await this.repo.updatePasswordById(uuid, hash, updatedAt);
+    return { ...user, updatedAt };
   }
 }

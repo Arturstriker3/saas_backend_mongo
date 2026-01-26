@@ -65,6 +65,18 @@ Example:
 - RabbitMQ metrics are scraped by Prometheus through the management exporter.
 - Grafana is provisioned via infra/grafana with dashboards for API and RabbitMQ.
 
+## Query Best Practices
+
+- Use lean() in all read queries.
+- Always project fields with select().
+- Ensure indexes on every field used in filters or sorting.
+- Avoid populate() on hot routes.
+- Prefer exists() for existence checks.
+- Use updateOne/updateMany instead of save() when you don't need to load the document.
+- Run independent queries in parallel (Promise.all).
+- Avoid countDocuments() on large collections.
+- Keep queries simple, predictable, and with minimal payload to reduce CPU and memory usage in a low-instance API.
+
 ## Testing (Bun)
 
 - Tests live alongside the code they validate.
@@ -72,6 +84,7 @@ Example:
 - Controllers are tested with simple mocks for use cases.
 - Use cases are tested with repository/service mocks and verify published events.
 - Run tests with bun test.
+
 ## Runtime (Bun)
 
 - Package manager: bun install.

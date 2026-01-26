@@ -37,16 +37,15 @@ export class ConfirmPasswordResetUseCase {
     const record = await this.getValidResetRecord(token);
     const user = await this.getExistingUser(record.userId);
     const hash = await this.hasher.hash(newPassword);
-    user.passwordHash = hash;
-    user.updatedAt = new Date();
-    await this.users.save(user);
+    const updatedAt = new Date();
+    await this.users.updatePasswordById(user.uuid, hash, updatedAt);
     await this.resets.deleteByToken(token);
     return {
       uuid: user.uuid,
       name: user.name,
       email: user.email,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      updatedAt,
       isActive: user.isActive,
       role: user.role,
       credits: user.credits,

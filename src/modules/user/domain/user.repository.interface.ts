@@ -11,5 +11,9 @@ export interface UserRepository {
   findAll(): Promise<UserEntity[]>;
   findById(id: string): Promise<UserEntity | null>;
   findByEmail(email: string): Promise<UserEntity | null>;
-  save(user: UserEntity): Promise<void>;
+  findByEmailWithPassword(email: string): Promise<UserEntity | null>;
+  existsByEmail(email: string): Promise<boolean>;
+  updateNameById(id: string, name: string, updatedAt: Date): Promise<boolean>;
+  updatePasswordById(id: string, passwordHash: string, updatedAt: Date): Promise<boolean>;
+  updateActiveById(id: string, isActive: boolean, updatedAt: Date): Promise<boolean>;
 }

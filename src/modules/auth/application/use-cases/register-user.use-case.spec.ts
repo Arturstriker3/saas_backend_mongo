@@ -28,7 +28,11 @@ type UserRepositoryMock = {
   findAll: MockFunction<[], Promise<UserEntity[]>>;
   findById: MockFunction<[string], Promise<UserEntity | null>>;
   findByEmail: MockFunction<[string], Promise<UserEntity | null>>;
-  save: MockFunction<[UserEntity], Promise<void>>;
+  findByEmailWithPassword: MockFunction<[string], Promise<UserEntity | null>>;
+  existsByEmail: MockFunction<[string], Promise<boolean>>;
+  updateNameById: MockFunction<[string, string, Date], Promise<boolean>>;
+  updatePasswordById: MockFunction<[string, string, Date], Promise<boolean>>;
+  updateActiveById: MockFunction<[string, boolean, Date], Promise<boolean>>;
 };
 
 type PasswordHasherMock = {
@@ -72,7 +76,11 @@ function createDeps(): TestDeps {
       findAll: createMock(),
       findById: createMock(),
       findByEmail: createMock(),
-      save: createMock(),
+      findByEmailWithPassword: createMock(),
+      existsByEmail: createMock(),
+      updateNameById: createMock(),
+      updatePasswordById: createMock(),
+      updateActiveById: createMock(),
     },
     hasher: {
       hash: createMock(),
@@ -105,13 +113,13 @@ describe('RegisterUserUseCase', () => {
       isActive: true,
       credits: 0,
     } as UserEntity;
-    deps.users.findByEmail.setResolvedValue(null);
+    deps.users.existsByEmail.setResolvedValue(false);
     deps.hasher.hash.setResolvedValue('hashed');
     deps.users.create.setResolvedValue(entity);
 
     const result = await useCase.execute(input);
 
-    expect(deps.users.findByEmail.calls).toEqual([['john.doe@example.com']]);
+    expect(deps.users.existsByEmail.calls).toEqual([['john.doe@example.com']]);
     expect(deps.hasher.hash.calls).toEqual([[input.password]]);
     expect(deps.users.create.calls).toEqual([
       [
@@ -156,7 +164,7 @@ describe('RegisterUserUseCase', () => {
       email: 'john.doe@example.com',
       password: 'password123',
     };
-    deps.users.findByEmail.setResolvedValue({ uuid: 'existing' } as UserEntity);
+    deps.users.existsByEmail.setResolvedValue(true);
 
     let error: unknown;
     try {
