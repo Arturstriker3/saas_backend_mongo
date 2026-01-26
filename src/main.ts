@@ -33,7 +33,7 @@ async function bootstrap() {
   if (env.RUN_SEED_ON_STARTUP === 'true') {
     await runSeed();
   }
-  await app.listen(parseInt(env.PORT, 10));
+  await app.listen(parseInt(env.PORT, 10), '0.0.0.0');
   const base = `http://localhost:${parseInt(env.PORT, 10)}`;
   Logger.log(`🟢 API listening on ${base}`, 'Bootstrap');
 }

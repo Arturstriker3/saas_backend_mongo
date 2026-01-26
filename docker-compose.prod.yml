@@ -1,0 +1,16 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saas_api
+    ports:
+      - '4001:3000'
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://host.docker.internal:27017
+      - RABBITMQ_URL=amqp://guest:guest@host.docker.internal:5672
+    restart: unless-stopped
