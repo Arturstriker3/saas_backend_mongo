@@ -28,10 +28,7 @@ import type {
 } from '../../application/use-cases/refresh-token.use-case';
 import type { LogoutBodyInputDTO } from '../../application/use-cases/logout.use-case';
 import type { RequestPasswordResetInputDTO } from '../../application/use-cases/request-password-reset.use-case';
-import type {
-  ConfirmPasswordResetInputDTO,
-  ConfirmPasswordResetOutputDTO,
-} from '../../application/use-cases/confirm-password-reset.use-case';
+import type { ConfirmPasswordResetInputDTO } from '../../application/use-cases/confirm-password-reset.use-case';
 import type {
   RegisterUserOutputDTO,
   RegisterUserInputDTO,
@@ -285,31 +282,17 @@ export class AuthController {
       },
     },
   })
-  @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        uuid: { type: 'string' },
-        name: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-        isActive: { type: 'boolean' },
-        role: { type: 'string' },
-        credits: { type: 'number' },
-      },
-      required: ['uuid', 'name', 'email', 'createdAt', 'updatedAt', 'isActive', 'role', 'credits'],
-    },
-  })
+  @ApiNoContentResponse()
   @ApiBadRequestResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
   @ApiNotFoundResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
+  @HttpCode(HttpStatus.NO_CONTENT)
   async confirmPasswordReset(
     @Body() body: ConfirmPasswordResetInputDTO,
-  ): Promise<ConfirmPasswordResetOutputDTO> {
-    return this.confirmResetUseCase.execute(body);
+  ): Promise<void> {
+    await this.confirmResetUseCase.execute(body);
   }
 }

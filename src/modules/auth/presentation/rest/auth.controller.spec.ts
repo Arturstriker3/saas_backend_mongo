@@ -21,7 +21,6 @@ import type {
 import type {
   ConfirmPasswordResetUseCase,
   ConfirmPasswordResetInputDTO,
-  ConfirmPasswordResetOutputDTO,
 } from '../../application/use-cases/confirm-password-reset.use-case';
 import type {
   RegisterUserUseCase,
@@ -47,7 +46,7 @@ type Mocks = {
   refreshUseCase: UseCaseMock<RefreshInputDTO, RefreshTokenOutputDTO>;
   logoutUseCase: UseCaseMock<LogoutBodyInputDTO & { userId: string }, void>;
   requestResetUseCase: UseCaseMock<RequestPasswordResetInputDTO, boolean>;
-  confirmResetUseCase: UseCaseMock<ConfirmPasswordResetInputDTO, ConfirmPasswordResetOutputDTO>;
+  confirmResetUseCase: UseCaseMock<ConfirmPasswordResetInputDTO, void>;
   registerUseCase: UseCaseMock<RegisterUserInputDTO, RegisterUserOutputDTO>;
   getMeUseCase: UseCaseMock<{ userId: string }, GetMeOutputDTO>;
 };
@@ -84,10 +83,7 @@ function createController(): { controller: AuthController; mocks: Mocks } {
   const requestResetUseCase: UseCaseMock<RequestPasswordResetInputDTO, boolean> = {
     execute: createMock(),
   };
-  const confirmResetUseCase: UseCaseMock<
-    ConfirmPasswordResetInputDTO,
-    ConfirmPasswordResetOutputDTO
-  > = {
+  const confirmResetUseCase: UseCaseMock<ConfirmPasswordResetInputDTO, void> = {
     execute: createMock(),
   };
   const registerUseCase: UseCaseMock<RegisterUserInputDTO, RegisterUserOutputDTO> = {
@@ -206,23 +202,12 @@ describe('AuthController', () => {
       token: 'reset-token',
       newPassword: 'newPassword123',
     };
-    const now = new Date('2025-01-01T10:00:00.000Z');
-    const output: ConfirmPasswordResetOutputDTO = {
-      uuid: 'user-uuid',
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      createdAt: now,
-      updatedAt: now,
-      isActive: true,
-      role: 'USER',
-      credits: 0,
-    };
-    mocks.confirmResetUseCase.execute.setResolvedValue(output);
+    mocks.confirmResetUseCase.execute.setResolvedValue(undefined);
 
     const result = await controller.confirmPasswordReset(input);
 
     expect(mocks.confirmResetUseCase.execute.calls).toEqual([[input]]);
-    expect(result).toEqual(output);
+    expect(result).toBeUndefined();
   });
 
   it('delegates getMe to GetMeUseCase', async () => {
