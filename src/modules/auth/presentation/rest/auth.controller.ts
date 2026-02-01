@@ -1,9 +1,9 @@
-import { Controller, Post, Body, Get, Req, Inject } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, Inject, HttpCode, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiBody,
-  ApiOkResponse,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiUnauthorizedResponse,
   ApiBadRequestResponse,
   ApiConflictResponse,
@@ -75,7 +75,7 @@ export class AuthController {
       },
     },
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     schema: {
       type: 'object',
       properties: {
@@ -91,6 +91,7 @@ export class AuthController {
   @ApiBadRequestResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
+  @HttpCode(HttpStatus.CREATED)
   async login(@Body() body: LoginInputDTO): Promise<AuthenticateUserOutputDTO> {
     return this.authUseCase.execute(body);
   }
@@ -119,9 +120,7 @@ export class AuthController {
   @ApiNotFoundResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
-  async me(
-    @Req() req: FastifyRequest & { user: { userId: string } },
-  ): Promise<GetMeOutputDTO> {
+  async me(@Req() req: FastifyRequest & { user: { userId: string } }): Promise<GetMeOutputDTO> {
     return this.getMeUseCase.execute({ userId: req.user.userId });
   }
 
