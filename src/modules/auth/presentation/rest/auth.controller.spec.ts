@@ -10,7 +10,7 @@ import type {
   RefreshTokenOutputDTO,
   RefreshInputDTO,
 } from '../../application/use-cases/refresh-token.use-case';
-import type { LogoutUseCase, LogoutInputDTO } from '../../application/use-cases/logout.use-case';
+import type { LogoutUseCase, LogoutBodyInputDTO } from '../../application/use-cases/logout.use-case';
 import type {
   RequestPasswordResetUseCase,
   RequestPasswordResetInputDTO,
@@ -40,7 +40,7 @@ type UseCaseMock<TInput, TOutput> = {
 type Mocks = {
   authUseCase: UseCaseMock<LoginInputDTO, AuthenticateUserOutputDTO>;
   refreshUseCase: UseCaseMock<RefreshInputDTO, RefreshTokenOutputDTO>;
-  logoutUseCase: UseCaseMock<LogoutInputDTO, boolean>;
+  logoutUseCase: UseCaseMock<LogoutBodyInputDTO & { userId: string }, void>;
   requestResetUseCase: UseCaseMock<RequestPasswordResetInputDTO, boolean>;
   confirmResetUseCase: UseCaseMock<ConfirmPasswordResetInputDTO, ConfirmPasswordResetOutputDTO>;
   registerUseCase: UseCaseMock<RegisterUserInputDTO, RegisterUserOutputDTO>;
@@ -70,7 +70,7 @@ function createController(): { controller: AuthController; mocks: Mocks } {
   const refreshUseCase: UseCaseMock<RefreshInputDTO, RefreshTokenOutputDTO> = {
     execute: createMock(),
   };
-  const logoutUseCase: UseCaseMock<LogoutInputDTO, boolean> = {
+  const logoutUseCase: UseCaseMock<LogoutBodyInputDTO & { userId: string }, void> = {
     execute: createMock(),
   };
   const requestResetUseCase: UseCaseMock<RequestPasswordResetInputDTO, boolean> = {
@@ -168,13 +168,15 @@ describe('AuthController', () => {
 
   it('delegates logout to LogoutUseCase', async () => {
     const { controller, mocks } = createController();
-    const input: LogoutInputDTO = { refreshToken: 'refresh-token' };
-    mocks.logoutUseCase.execute.setResolvedValue(true);
+    const input: LogoutBodyInputDTO = { refreshToken: 'refresh-token' };
+    mocks.logoutUseCase.execute.setResolvedValue(undefined);
 
-    const result = await controller.logout(input);
+    const result = await controller.logout(input, { user: { userId: 'user-uuid' } } as never);
 
-    expect(mocks.logoutUseCase.execute.calls).toEqual([[input]]);
-    expect(result).toBe(true);
+    expect(mocks.logoutUseCase.execute.calls).toEqual([
+      [{ refreshToken: 'refresh-token', userId: 'user-uuid' }],
+    ]);
+    expect(result).toBeUndefined();
   });
 
   it('delegates password reset request to RequestPasswordResetUseCase', async () => {

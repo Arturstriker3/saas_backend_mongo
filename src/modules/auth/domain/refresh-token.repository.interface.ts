@@ -10,4 +10,5 @@ export interface RefreshTokenRepository {
   save(record: RefreshTokenRecord): Promise<void>;
   findByToken(token: string): Promise<RefreshTokenRecord | null>;
   deleteByToken(token: string): Promise<void>;
+  deleteByTokenAndUserId(token: string, userId: string): Promise<void>;
 }

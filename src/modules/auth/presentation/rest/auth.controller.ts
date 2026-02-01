@@ -8,6 +8,7 @@ import {
   ApiBadRequestResponse,
   ApiConflictResponse,
   ApiNotFoundResponse,
+  ApiNoContentResponse,
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 import { AuthenticateUserUseCase } from '../../application/use-cases/authenticate-user.use-case';
@@ -24,7 +25,7 @@ import type {
   RefreshInputDTO,
   RefreshTokenOutputDTO,
 } from '../../application/use-cases/refresh-token.use-case';
-import type { LogoutInputDTO } from '../../application/use-cases/logout.use-case';
+import type { LogoutBodyInputDTO } from '../../application/use-cases/logout.use-case';
 import type { RequestPasswordResetInputDTO } from '../../application/use-cases/request-password-reset.use-case';
 import type {
   ConfirmPasswordResetInputDTO,
@@ -220,15 +221,19 @@ export class AuthController {
       },
     },
   })
-  @ApiOkResponse({ schema: { type: 'boolean' } })
+  @ApiNoContentResponse()
   @ApiUnauthorizedResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
   @ApiBadRequestResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
-  async logout(@Body() body: LogoutInputDTO): Promise<boolean> {
-    return this.logoutUseCase.execute(body);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(
+    @Body() body: LogoutBodyInputDTO,
+    @Req() req: FastifyRequest & { user: { userId: string } },
+  ): Promise<void> {
+    await this.logoutUseCase.execute({ ...body, userId: req.user.userId });
   }
 
   @Post('request-password-reset')

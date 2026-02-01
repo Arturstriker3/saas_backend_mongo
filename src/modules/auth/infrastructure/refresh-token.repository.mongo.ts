@@ -58,4 +58,8 @@ export class RefreshTokenRepositoryMongo implements RefreshTokenRepository {
   async deleteByToken(token: string): Promise<void> {
     await this.model.deleteOne({ token });
   }
+
+  async deleteByTokenAndUserId(token: string, userId: string): Promise<void> {
+    await this.model.deleteOne({ token, userId });
+  }
 }

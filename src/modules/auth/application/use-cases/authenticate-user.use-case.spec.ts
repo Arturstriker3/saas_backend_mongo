@@ -55,6 +55,7 @@ type RefreshTokenRepositoryMock = {
   >;
   findByToken: MockFunction<[string], Promise<null>>;
   deleteByToken: MockFunction<[string], Promise<void>>;
+  deleteByTokenAndUserId: MockFunction<[string, string], Promise<void>>;
 };
 
 type JwtServiceMock = {
@@ -108,6 +109,7 @@ function createDeps(): TestDeps {
       save: createMock(),
       findByToken: createMock(),
       deleteByToken: createMock(),
+      deleteByTokenAndUserId: createMock(),
     },
     jwt: {
       signAsync: createMock(),
