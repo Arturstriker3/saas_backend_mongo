@@ -217,12 +217,9 @@ describe('AuthController', () => {
     const { controller, mocks } = createController();
     const now = new Date('2025-01-01T10:00:00.000Z');
     const output: GetMeOutputDTO = {
-      uuid: 'user-uuid',
       name: 'John Doe',
       email: 'john.doe@example.com',
       createdAt: now,
-      updatedAt: now,
-      isActive: true,
       role: 'USER',
       credits: 0,
     };

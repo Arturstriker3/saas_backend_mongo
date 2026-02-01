@@ -102,16 +102,13 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        uuid: { type: 'string' },
         name: { type: 'string' },
         email: { type: 'string', format: 'email' },
         createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-        isActive: { type: 'boolean' },
         role: { type: 'string' },
         credits: { type: 'number' },
       },
-      required: ['uuid', 'name', 'email', 'createdAt', 'updatedAt', 'isActive', 'role', 'credits'],
+      required: ['name', 'email', 'createdAt', 'role', 'credits'],
     },
   })
   @ApiUnauthorizedResponse({
