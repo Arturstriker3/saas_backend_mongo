@@ -21,14 +21,15 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@fastify/swagger": "^9.6.1",
+    "@fastify/swagger-ui": "^5.2.4",
     "@nestjs/common": "^11.1.12",
     "@nestjs/core": "^11.1.12",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-fastify": "^11.1.12",
     "@nestjs/swagger": "^11.2.5",
-    "@fastify/swagger": "^9.6.1",
-    "@fastify/swagger-ui": "^5.2.4",
+    "@nestjs/throttler": "^6.5.0",
     "amqplib": "^0.10.9",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",

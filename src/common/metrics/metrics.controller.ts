@@ -9,6 +9,7 @@ const env = loadEnv();
 export class MetricsController {
   constructor(private readonly metrics: MetricsService) {}
 
+  // @SkipThrottle()
   @Get()
   async getMetrics(@Res() res: FastifyReply): Promise<void> {
     if (env.METRICS_ENABLED !== 'true') {

@@ -10,7 +10,10 @@ import type {
   RefreshTokenOutputDTO,
   RefreshInputDTO,
 } from '../../application/use-cases/refresh-token.use-case';
-import type { LogoutUseCase, LogoutBodyInputDTO } from '../../application/use-cases/logout.use-case';
+import type {
+  LogoutUseCase,
+  LogoutBodyInputDTO,
+} from '../../application/use-cases/logout.use-case';
 import type {
   RequestPasswordResetUseCase,
   RequestPasswordResetInputDTO,
@@ -27,7 +30,9 @@ import type {
 } from '../../application/use-cases/register-user.use-case';
 import type { GetMeUseCase, GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
 
-type MockFunction<Args extends unknown[] = unknown[], Return = unknown> = ((...args: Args) => Return) & {
+type MockFunction<Args extends unknown[] = unknown[], Return = unknown> = ((
+  ...args: Args
+) => Return) & {
   calls: Args[];
   setResolvedValue: (value: Awaited<Return>) => void;
   setImplementation: (impl: (...args: Args) => Return) => void;
@@ -47,15 +52,18 @@ type Mocks = {
   getMeUseCase: UseCaseMock<{ userId: string }, GetMeOutputDTO>;
 };
 
-function createMock<Args extends unknown[] = unknown[], Return = unknown>(): MockFunction<Args, Return> {
-  let impl: (...args: Args) => Return = (() => undefined as Return);
+function createMock<Args extends unknown[] = unknown[], Return = unknown>(): MockFunction<
+  Args,
+  Return
+> {
+  let impl: (...args: Args) => Return = () => undefined as Return;
   const fn = ((...args: Args) => {
     fn.calls.push(args);
     return impl(...args);
   }) as MockFunction<Args, Return>;
   fn.calls = [];
   fn.setResolvedValue = (value) => {
-    impl = (() => Promise.resolve(value) as Return);
+    impl = () => Promise.resolve(value) as Return;
   };
   fn.setImplementation = (newImpl) => {
     impl = newImpl;
@@ -76,10 +84,12 @@ function createController(): { controller: AuthController; mocks: Mocks } {
   const requestResetUseCase: UseCaseMock<RequestPasswordResetInputDTO, boolean> = {
     execute: createMock(),
   };
-  const confirmResetUseCase: UseCaseMock<ConfirmPasswordResetInputDTO, ConfirmPasswordResetOutputDTO> =
-    {
-      execute: createMock(),
-    };
+  const confirmResetUseCase: UseCaseMock<
+    ConfirmPasswordResetInputDTO,
+    ConfirmPasswordResetOutputDTO
+  > = {
+    execute: createMock(),
+  };
   const registerUseCase: UseCaseMock<RegisterUserInputDTO, RegisterUserOutputDTO> = {
     execute: createMock(),
   };
@@ -187,7 +197,7 @@ describe('AuthController', () => {
     const result = await controller.requestPasswordReset(input);
 
     expect(mocks.requestResetUseCase.execute.calls).toEqual([[input]]);
-    expect(result).toBe(true);
+    expect(result).toBeUndefined();
   });
 
   it('delegates password reset confirmation to ConfirmPasswordResetUseCase', async () => {

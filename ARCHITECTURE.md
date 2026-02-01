@@ -65,6 +65,13 @@ Example:
 - RabbitMQ metrics are scraped by Prometheus through the management exporter.
 - Grafana is provisioned via infra/grafana with dashboards for API and RabbitMQ.
 
+## Throttling
+
+- Global rate limiting is configured in src/app.module.ts via ThrottlerModule.
+- Env vars define global limits: RATE_LIMIT_GLOBAL_TTL and RATE_LIMIT_GLOBAL_LIMIT.
+- Local overrides use @Throttle with named options (default) on specific endpoints.
+- Endpoints can be excluded with @SkipThrottle when needed.
+
 ## Query Best Practices
 
 - Use lean() in all read queries.

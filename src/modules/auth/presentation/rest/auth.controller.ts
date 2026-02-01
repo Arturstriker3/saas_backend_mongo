@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Get, Req, Inject, HttpCode, HttpStatus } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiBody,
@@ -38,6 +39,9 @@ import type {
 import { Public, Authenticated } from '../../../../common/http/access.decorator';
 import { GetMeUseCase } from '../../application/use-cases/get-me.use-case';
 import type { GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
+import { loadEnv } from '../../../../common/config/env';
+
+const env = loadEnv();
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -238,6 +242,12 @@ export class AuthController {
 
   @Post('request-password-reset')
   @Public()
+  @Throttle({
+    default: {
+      limit: parseInt(env.RATE_LIMIT_RESET_LIMIT, 10),
+      ttl: parseInt(env.RATE_LIMIT_RESET_TTL, 10),
+    },
+  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -248,12 +258,13 @@ export class AuthController {
       sample: { summary: 'Request reset', value: { email: 'user@example.com' } },
     },
   })
-  @ApiOkResponse({ schema: { type: 'boolean' } })
+  @ApiNoContentResponse()
   @ApiBadRequestResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
-  async requestPasswordReset(@Body() body: RequestPasswordResetInputDTO): Promise<boolean> {
-    return this.requestResetUseCase.execute(body);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async requestPasswordReset(@Body() body: RequestPasswordResetInputDTO): Promise<void> {
+    await this.requestResetUseCase.execute(body);
   }
 
   @Post('confirm-password-reset')

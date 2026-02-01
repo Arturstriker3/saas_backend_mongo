@@ -11,8 +11,15 @@ export class EmailService {
       await this.resend.emails.send({
         from: env.RESEND_FROM,
         to,
-        subject: 'Password Reset',
-        text: `Use this token to reset your password: ${token}`,
+        subject: `${env.APP_NAME} Password Reset`,
+        text: `
+        You requested to reset your password.
+
+        Use the link below to continue:
+        ${token}
+
+        If you didn’t request this, you can safely ignore this email.
+        `,
       });
     } catch (err: unknown) {
       const name = (err as any)?.name as string | undefined;
