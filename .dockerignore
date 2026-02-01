@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-bundle
+.git
+.github
+.env
+*.log
+tmp
+coverage
+**/*.spec.ts
+**/*.test.ts
+infra
+README.md
+ARCHITECTURE.md
+docker-compose.yml
+docker-compose.prod.yml

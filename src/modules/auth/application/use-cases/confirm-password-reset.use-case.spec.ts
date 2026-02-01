@@ -1,8 +1,8 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { describe, it, expect } from 'bun:test';
-import { RegisterUserUseCase } from './register-user.use-case';
+import { ConfirmPasswordResetUseCase } from './confirm-password-reset.use-case';
 import type { UserEntity } from '../../../user/domain/user.entity';
-import type { DomainEvent } from '../../../../common/messaging/events';
+import type { PasswordResetRecord } from '../../domain/password-reset.repository.interface';
 
 type MockFunction<Args extends unknown[] = unknown[], Return = unknown> = ((
   ...args: Args
@@ -35,19 +35,21 @@ type UserRepositoryMock = {
   updateActiveById: MockFunction<[string, boolean, Date], Promise<boolean>>;
 };
 
+type PasswordResetRepositoryMock = {
+  save: MockFunction<[PasswordResetRecord], Promise<void>>;
+  findByToken: MockFunction<[string], Promise<PasswordResetRecord | null>>;
+  deleteByToken: MockFunction<[string], Promise<void>>;
+};
+
 type PasswordHasherMock = {
   hash: MockFunction<[string], Promise<string>>;
   compare: MockFunction<[string, string], Promise<boolean>>;
 };
 
-type EventBusMock = {
-  publish: MockFunction<[DomainEvent], Promise<void>>;
-};
-
 type TestDeps = {
   users: UserRepositoryMock;
+  resets: PasswordResetRepositoryMock;
   hasher: PasswordHasherMock;
-  events: EventBusMock;
 };
 
 function createMock<Args extends unknown[] = unknown[], Return = unknown>(): MockFunction<
@@ -82,99 +84,74 @@ function createDeps(): TestDeps {
       updatePasswordById: createMock(),
       updateActiveById: createMock(),
     },
+    resets: {
+      save: createMock(),
+      findByToken: createMock(),
+      deleteByToken: createMock(),
+    },
     hasher: {
       hash: createMock(),
       compare: createMock(),
     },
-    events: {
-      publish: createMock(),
-    },
   };
 }
 
-describe('RegisterUserUseCase', () => {
-  it('creates user and publishes event', async () => {
+describe('ConfirmPasswordResetUseCase', () => {
+  it('updates password and deletes token', async () => {
     const deps = createDeps();
-    const useCase = new RegisterUserUseCase(deps.users, deps.hasher, deps.events);
-    const input = {
-      name: 'John Doe',
-      email: 'John.Doe@Example.com',
-      password: 'password123',
-    };
-    const now = new Date('2025-01-01T10:00:00.000Z');
-    const entity = {
+    const useCase = new ConfirmPasswordResetUseCase(deps.resets, deps.users, deps.hasher);
+    const now = new Date();
+    const user = {
       uuid: 'user-uuid',
-      name: input.name,
-      email: input.email,
-      passwordHash: 'hashed',
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      passwordHash: 'old-hash',
       role: 'USER',
       createdAt: now,
       updatedAt: now,
       isActive: true,
       credits: 0,
     } as UserEntity;
-    deps.users.existsByEmail.setResolvedValue(false);
-    deps.hasher.hash.setResolvedValue('hashed');
-    deps.users.create.setResolvedValue(entity);
-
-    const result = await useCase.execute(input);
-
-    expect(deps.users.existsByEmail.calls).toEqual([['john.doe@example.com']]);
-    expect(deps.hasher.hash.calls).toEqual([[input.password]]);
-    expect(deps.users.create.calls).toEqual([
-      [
-        {
-          name: input.name,
-          email: input.email,
-          passwordHash: 'hashed',
-          role: 'USER',
-          credits: 0,
-        },
-      ],
-    ]);
-    const published = deps.events.publish.calls[0]?.[0] as {
-      name: string;
-      payload: { userId: string; email: string; name: string };
-      occurredAt: Date;
+    const record: PasswordResetRecord = {
+      uuid: 'reset-uuid',
+      token: 'reset-token',
+      userId: user.uuid,
+      createdAt: now,
+      expiresAt: new Date(Date.now() + 60_000),
     };
-    expect(published.name).toBe('UserRegistered');
-    expect(published.payload).toEqual({
-      userId: entity.uuid,
-      email: entity.email,
-      name: entity.name,
-    });
-    expect(published.occurredAt).toBeInstanceOf(Date);
-    expect(result).toEqual({
-      name: input.name,
-      email: input.email,
-      uuid: entity.uuid,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-      isActive: entity.isActive,
-      role: entity.role,
-      credits: entity.credits,
-    });
+    deps.resets.findByToken.setResolvedValue(record);
+    deps.users.findById.setResolvedValue(user);
+    deps.hasher.hash.setResolvedValue('new-hash');
+    deps.users.updatePasswordById.setResolvedValue(true);
+    deps.resets.deleteByToken.setResolvedValue(undefined);
+
+    const result = await useCase.execute({ token: record.token, newPassword: 'newPassword123' });
+
+    expect(deps.resets.findByToken.calls).toEqual([[record.token]]);
+    expect(deps.users.findById.calls).toEqual([[user.uuid]]);
+    expect(deps.hasher.hash.calls).toEqual([['newPassword123']]);
+    const [uuid, hash, updatedAt] = deps.users.updatePasswordById.calls[0] ?? [];
+    expect(uuid).toBe(user.uuid);
+    expect(hash).toBe('new-hash');
+    expect(updatedAt).toBeInstanceOf(Date);
+    expect(deps.resets.deleteByToken.calls).toEqual([[record.token]]);
+    expect(result).toBeUndefined();
   });
 
-  it('throws when email already exists', async () => {
+  it('throws when reset token is invalid', async () => {
     const deps = createDeps();
-    const useCase = new RegisterUserUseCase(deps.users, deps.hasher, deps.events);
-    const input = {
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      password: 'password123',
-    };
-    deps.users.existsByEmail.setResolvedValue(true);
+    const useCase = new ConfirmPasswordResetUseCase(deps.resets, deps.users, deps.hasher);
+    deps.resets.findByToken.setResolvedValue(null);
 
     let error: unknown;
     try {
-      await useCase.execute(input);
+      await useCase.execute({ token: 'missing-token', newPassword: 'newPassword123' });
     } catch (err) {
       error = err;
     }
 
-    expect(error).toBeInstanceOf(ConflictException);
-    expect(deps.users.create.calls.length).toBe(0);
-    expect(deps.events.publish.calls.length).toBe(0);
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(deps.users.updatePasswordById.calls.length).toBe(0);
+    expect(deps.resets.deleteByToken.calls.length).toBe(0);
   });
 });

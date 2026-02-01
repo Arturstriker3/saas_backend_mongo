@@ -1,8 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { Counter, Histogram, Registry, collectDefaultMetrics } from 'prom-client';
-import { Request, Response, NextFunction } from 'express';
 
 type HttpLabelName = 'method' | 'route' | 'status';
+const METRICS_START = Symbol('metricsStart');
+type HttpRequestLike = {
+  method: string;
+  routeOptions?: { url?: string };
+  raw?: { url?: string };
+  routerPath?: string;
+  [METRICS_START]?: bigint;
+};
+type HttpReplyLike = { statusCode: number };
+type FastifyHookHandler = (
+  req: HttpRequestLike,
+  reply: HttpReplyLike,
+  done?: (error?: Error) => void,
+) => void | Promise<void>;
+type FastifyHookable = {
+  addHook: {
+    (name: 'onRequest', hook: FastifyHookHandler): void;
+    (name: 'onResponse', hook: FastifyHookHandler): void;
+  };
+};
 
 @Injectable()
 export class MetricsService {
@@ -36,27 +55,34 @@ export class MetricsService {
     return this.registry.metrics();
   }
 
-  httpMiddleware() {
-    return (req: Request, res: Response, next: NextFunction): void => {
-      const start = process.hrtime.bigint();
-      res.on('finish', () => {
-        const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
-        const route = this.resolveRoute(req);
-        const status = String(res.statusCode);
-        const labels = { method: req.method, route, status };
-        this.httpDuration.observe(labels, durationSeconds);
-        this.httpRequests.inc(labels);
-      });
-      next();
-    };
+  registerHttpMetrics(instance: FastifyHookable): void {
+    instance.addHook('onRequest', (req, _reply, done) => {
+      req[METRICS_START] = process.hrtime.bigint();
+      if (done) done();
+    });
+    instance.addHook('onResponse', (req, reply, done) => {
+      const start = req[METRICS_START];
+      if (!start) {
+        if (done) done();
+        return;
+      }
+      const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+      const route = this.resolveRoute(req);
+      const status = String(reply.statusCode);
+      const labels = { method: req.method, route, status };
+      this.httpDuration.observe(labels, durationSeconds);
+      this.httpRequests.inc(labels);
+      if (done) done();
+    });
   }
 
-  private resolveRoute(req: Request): string {
-    const baseUrl = req.baseUrl ?? '';
-    const routePath = req.route?.path;
-    if (routePath) return `${baseUrl}${routePath}`;
-    if (req.path) return req.path;
-    if (baseUrl) return baseUrl;
+  private resolveRoute(req: HttpRequestLike): string {
+    const routeUrl = req.routeOptions?.url;
+    if (routeUrl) return routeUrl;
+    const routerPath = (req as { routerPath?: string }).routerPath;
+    if (routerPath) return routerPath;
+    const rawUrl = req.raw?.url;
+    if (rawUrl) return rawUrl;
     return 'unknown';
   }
 }

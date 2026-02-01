@@ -14,17 +14,6 @@ export const ConfirmPasswordResetDTO = z.object({
 });
 export type ConfirmPasswordResetInputDTO = z.infer<typeof ConfirmPasswordResetDTO>;
 
-export type ConfirmPasswordResetOutputDTO = {
-  uuid: string;
-  name: string;
-  email: string;
-  createdAt: Date;
-  updatedAt: Date;
-  isActive: boolean;
-  role: string;
-  credits: number;
-};
-
 export class ConfirmPasswordResetUseCase {
   constructor(
     private readonly resets: PasswordResetRepository,
@@ -32,25 +21,14 @@ export class ConfirmPasswordResetUseCase {
     private readonly hasher: PasswordHasher,
   ) {}
 
-  async execute(input: ConfirmPasswordResetInputDTO): Promise<ConfirmPasswordResetOutputDTO> {
+  async execute(input: ConfirmPasswordResetInputDTO): Promise<void> {
     const { token, newPassword } = ConfirmPasswordResetDTO.parse(input);
     const record = await this.getValidResetRecord(token);
     const user = await this.getExistingUser(record.userId);
     const hash = await this.hasher.hash(newPassword);
-    user.passwordHash = hash;
-    user.updatedAt = new Date();
-    await this.users.save(user);
+    const updatedAt = new Date();
+    await this.users.updatePasswordById(user.uuid, hash, updatedAt);
     await this.resets.deleteByToken(token);
-    return {
-      uuid: user.uuid,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      isActive: user.isActive,
-      role: user.role,
-      credits: user.credits,
-    };
   }
 
   private async getValidResetRecord(token: string): Promise<PasswordResetRecord> {

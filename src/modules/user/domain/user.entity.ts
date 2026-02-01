@@ -1,4 +1,4 @@
-import { Schema, Document } from 'mongoose';
+import { Schema } from 'mongoose';
 import { ROLES } from '../../role/domain/role.types';
 
 export const USER_CONSTANTS = {
@@ -14,7 +14,7 @@ export const USER_CONSTANTS = {
   CREDITS_MAX: 999999,
 };
 
-export type UserEntity = Document & {
+export type UserEntity = {
   uuid: string;
   name: string;
   email: string;
