@@ -1,7 +1,10 @@
+import { Logger } from '@nestjs/common';
 import mongoose from 'mongoose';
 import { loadEnv } from '../../config/env';
 import { v7 as uuidv7 } from 'uuid';
-import * as bcrypt from 'bcrypt';
+import * as argon2 from 'argon2';
+
+const logger = new Logger('Seed');
 
 export async function runSeed() {
   const env = loadEnv();
@@ -30,7 +33,7 @@ export async function runSeed() {
     }
     const uuid = uuidv7();
     const name = env.SUPER_ADMIN_NAME;
-    const passwordHash = await bcrypt.hash(env.SUPER_ADMIN_PASSWORD, 10);
+    const passwordHash = await argon2.hash(env.SUPER_ADMIN_PASSWORD, { type: argon2.argon2id });
     const role = 'ADMIN';
     const now = new Date();
     const isActive = true;
@@ -45,7 +48,7 @@ export async function runSeed() {
       isActive,
       credits: 0,
     });
-    console.log('[seed] applied: SUPER ADMIN created');
+    logger.log('applied: SUPER ADMIN created');
     await conn.close();
   } catch (err) {
     console.error('[seed] aborted', err);

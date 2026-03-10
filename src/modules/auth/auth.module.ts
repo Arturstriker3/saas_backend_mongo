@@ -12,7 +12,7 @@ import { UserRepository } from '../user/domain/user.repository.interface';
 import { UserRepositoryMongo } from '../user/infrastructure/user.repository.mongo';
 import { RefreshTokenRepository } from './domain/refresh-token.repository.interface';
 import { PasswordHasher, PASSWORD_HASHER } from './domain/password-hasher.interface';
-import { BcryptPasswordHasher } from './infrastructure/password-hasher.bcrypt';
+import { Argon2idPasswordHasher } from './infrastructure/password-hasher.argon2id';
 import { AuthenticateUserUseCase } from './application/use-cases/authenticate-user.use-case';
 import { RefreshTokenUseCase } from './application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
@@ -51,10 +51,10 @@ import {
     }),
   ],
   providers: [
-    BcryptPasswordHasher,
+    Argon2idPasswordHasher,
     {
       provide: PASSWORD_HASHER,
-      useExisting: BcryptPasswordHasher,
+      useExisting: Argon2idPasswordHasher,
     },
     {
       provide: REFRESH_TOKEN_MODEL,

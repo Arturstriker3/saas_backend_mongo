@@ -10,15 +10,15 @@ import { ChangeUserPasswordUseCase } from './application/use-cases/change-user-p
 import { DeactivateUserUseCase } from './application/use-cases/deactivate-user.use-case';
 import { UserController } from './presentation/rest/user.controller';
 import { PasswordHasher, PASSWORD_HASHER } from '../auth/domain/password-hasher.interface';
-import { BcryptPasswordHasher } from '../auth/infrastructure/password-hasher.bcrypt';
+import { Argon2idPasswordHasher } from '../auth/infrastructure/password-hasher.argon2id';
 
 @Module({
   imports: [DatabaseModule, RoleModule],
   providers: [
-    BcryptPasswordHasher,
+    Argon2idPasswordHasher,
     {
       provide: PASSWORD_HASHER,
-      useExisting: BcryptPasswordHasher,
+      useExisting: Argon2idPasswordHasher,
     },
     UserRepositoryMongo,
     {
