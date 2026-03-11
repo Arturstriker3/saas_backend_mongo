@@ -23,12 +23,12 @@ async function bootstrap() {
   await channel.close();
   if (env.DOCS_ENABLED === 'true') {
     const config = new DocumentBuilder()
-      .setTitle(env.DOCS_TITLE)
+      .setTitle(`${env.APP_NAME} Backend API`)
       .setVersion(env.DOCS_VERSION)
       .addBearerAuth()
       .build();
     const doc = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup(env.DOCS_ROUTE, app, doc);
+    SwaggerModule.setup('/docs', app, doc);
   }
   if (env.RUN_SEED_ON_STARTUP === 'true') {
     await runSeed();

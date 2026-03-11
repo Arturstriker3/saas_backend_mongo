@@ -26,7 +26,7 @@ export async function runSeed() {
     const email = env.SUPER_ADMIN_EMAIL.toLowerCase();
     const exists = await UserModel.findOne({ email }).lean();
     if (exists) {
-      console.log('[seed] skipped: SUPER ADMIN already exists');
+      logger.log('Skipped: SUPER ADMIN already exists');
       await conn.close();
       return;
     }
@@ -47,10 +47,10 @@ export async function runSeed() {
       isActive,
       credits: 0,
     });
-    logger.log('applied: SUPER ADMIN created');
+    logger.log('Applied: SUPER ADMIN created');
     await conn.close();
   } catch (err) {
-    console.error('[seed] aborted', err);
+    logger.error('Aborted', err);
     await conn.close();
     process.exit(1);
   }

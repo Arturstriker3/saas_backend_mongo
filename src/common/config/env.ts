@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import { z } from 'zod';
 
@@ -34,8 +35,6 @@ const EnvSchema = z.object({
   METRICS_ROUTE: z.string().default('/metrics'),
   RUN_SEED_ON_STARTUP: z.string().default('false'),
   DOCS_ENABLED: z.string().default('true'),
-  DOCS_ROUTE: z.string().default('/docs'),
-  DOCS_TITLE: z.string().default('SaaS Backend API'),
   DOCS_VERSION: z.string().default('1.0'),
   SUPER_ADMIN_EMAIL: z.string().default('admin@example.com'),
   SUPER_ADMIN_NAME: z.string().default('Super Admin'),
@@ -45,10 +44,20 @@ const EnvSchema = z.object({
 export type AppEnv = z.infer<typeof EnvSchema>;
 
 let cachedEnv: AppEnv | null = null;
+const logger = new Logger('Env');
+
+function logDefaultEnvWarnings(parsed: AppEnv): void {
+  const envKeys = Object.keys(parsed) as Array<keyof AppEnv>;
+  for (const key of envKeys) {
+    if (process.env[key] !== undefined) continue;
+    logger.warn(`${String(key)} not set. Using default from EnvSchema.`);
+  }
+}
 
 export function loadEnv(): AppEnv {
   if (cachedEnv) return cachedEnv;
   const parsed = EnvSchema.parse(process.env);
+  logDefaultEnvWarnings(parsed);
   cachedEnv = parsed;
   return parsed;
 }
