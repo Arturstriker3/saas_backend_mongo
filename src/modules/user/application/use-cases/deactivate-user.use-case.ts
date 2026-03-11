@@ -12,12 +12,11 @@ export class DeactivateUserUseCase {
   }
 
   async execute(input: DeactivateUserInputDTO) {
-    const { uuid } = DeactivateUserDTO.parse(input);
-    const user = await this.repo.findById(uuid);
+    const user = await this.repo.findById(input.uuid);
     if (!user) throw new Error('User not found');
     if (!user.isActive) return user;
     const updatedAt = new Date();
-    await this.repo.updateActiveById(uuid, false, updatedAt);
+    await this.repo.updateActiveById(input.uuid, false, updatedAt);
     return { ...user, isActive: false, updatedAt };
   }
 }

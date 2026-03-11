@@ -14,10 +14,21 @@ import {
 import type { FastifyRequest } from 'fastify';
 import { AuthenticateUserUseCase } from '../../application/use-cases/authenticate-user.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
-import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
-import { RequestPasswordResetUseCase } from '../../application/use-cases/request-password-reset.use-case';
-import { ConfirmPasswordResetUseCase } from '../../application/use-cases/confirm-password-reset.use-case';
-import { RegisterUserUseCase } from '../../application/use-cases/register-user.use-case';
+import { LogoutBodyDTO, LogoutUseCase } from '../../application/use-cases/logout.use-case';
+import {
+  RequestPasswordResetDTO,
+  RequestPasswordResetUseCase,
+} from '../../application/use-cases/request-password-reset.use-case';
+import {
+  ConfirmPasswordResetDTO,
+  ConfirmPasswordResetUseCase,
+} from '../../application/use-cases/confirm-password-reset.use-case';
+import {
+  RegisterUserDTO,
+  RegisterUserUseCase,
+} from '../../application/use-cases/register-user.use-case';
+import { LoginDTO } from '../../application/use-cases/authenticate-user.use-case';
+import { RefreshDTO } from '../../application/use-cases/refresh-token.use-case';
 import type {
   AuthenticateUserOutputDTO,
   LoginInputDTO,
@@ -37,6 +48,7 @@ import { Public, Authenticated } from '../../../../common/http/access.decorator'
 import { GetMeUseCase } from '../../application/use-cases/get-me.use-case';
 import type { GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
 import { loadEnv } from '../../../../common/config/env';
+import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
 
 const env = loadEnv();
 
@@ -94,7 +106,9 @@ export class AuthController {
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
   @HttpCode(HttpStatus.CREATED)
-  async login(@Body() body: LoginInputDTO): Promise<AuthenticateUserOutputDTO> {
+  async login(
+    @Body(new ZodValidationPipe(LoginDTO)) body: LoginInputDTO,
+  ): Promise<AuthenticateUserOutputDTO> {
     return this.authUseCase.execute(body);
   }
 
@@ -168,7 +182,9 @@ export class AuthController {
   @ApiBadRequestResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
-  async register(@Body() body: RegisterUserInputDTO): Promise<RegisterUserOutputDTO> {
+  async register(
+    @Body(new ZodValidationPipe(RegisterUserDTO)) body: RegisterUserInputDTO,
+  ): Promise<RegisterUserOutputDTO> {
     return this.registerUseCase.execute(body);
   }
 
@@ -203,7 +219,9 @@ export class AuthController {
   @ApiBadRequestResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
-  async refreshToken(@Body() body: RefreshInputDTO): Promise<RefreshTokenOutputDTO> {
+  async refreshToken(
+    @Body(new ZodValidationPipe(RefreshDTO)) body: RefreshInputDTO,
+  ): Promise<RefreshTokenOutputDTO> {
     return this.refreshUseCase.execute(body);
   }
 
@@ -231,7 +249,7 @@ export class AuthController {
   })
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
-    @Body() body: LogoutBodyInputDTO,
+    @Body(new ZodValidationPipe(LogoutBodyDTO)) body: LogoutBodyInputDTO,
     @Req() req: FastifyRequest & { user: { userId: string } },
   ): Promise<void> {
     await this.logoutUseCase.execute({ ...body, userId: req.user.userId });
@@ -260,7 +278,9 @@ export class AuthController {
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async requestPasswordReset(@Body() body: RequestPasswordResetInputDTO): Promise<void> {
+  async requestPasswordReset(
+    @Body(new ZodValidationPipe(RequestPasswordResetDTO)) body: RequestPasswordResetInputDTO,
+  ): Promise<void> {
     await this.requestResetUseCase.execute(body);
   }
 
@@ -291,7 +311,7 @@ export class AuthController {
   })
   @HttpCode(HttpStatus.NO_CONTENT)
   async confirmPasswordReset(
-    @Body() body: ConfirmPasswordResetInputDTO,
+    @Body(new ZodValidationPipe(ConfirmPasswordResetDTO)) body: ConfirmPasswordResetInputDTO,
   ): Promise<void> {
     await this.confirmResetUseCase.execute(body);
   }

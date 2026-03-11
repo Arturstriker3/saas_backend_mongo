@@ -1,8 +1,9 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { describe, it, expect } from 'bun:test';
-import { RegisterUserUseCase } from './register-user.use-case';
+import { RegisterUserDTO, RegisterUserUseCase } from './register-user.use-case';
 import type { UserEntity } from '../../../user/domain/user.entity';
 import type { DomainEvent } from '../../../../common/messaging/events';
+import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
 
 type MockFunction<Args extends unknown[] = unknown[], Return = unknown> = ((
   ...args: Args
@@ -176,5 +177,25 @@ describe('RegisterUserUseCase', () => {
     expect(error).toBeInstanceOf(ConflictException);
     expect(deps.users.create.calls.length).toBe(0);
     expect(deps.events.publish.calls.length).toBe(0);
+  });
+
+  it('throws validation error with field name for invalid password on zod pipe', () => {
+    const pipe = new ZodValidationPipe(RegisterUserDTO);
+    const input = {
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      password: '123456',
+    };
+
+    let error: unknown;
+    try {
+      pipe.transform(input, { type: 'body' });
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    const response = (error as BadRequestException).getResponse() as { message: string[] };
+    expect(response.message[0].startsWith('password:')).toBe(true);
   });
 });

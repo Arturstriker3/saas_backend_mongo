@@ -12,12 +12,11 @@ export class ActivateUserUseCase {
   }
 
   async execute(input: ActivateUserInputDTO) {
-    const { uuid } = ActivateUserDTO.parse(input);
-    const user = await this.repo.findById(uuid);
+    const user = await this.repo.findById(input.uuid);
     if (!user) throw new Error('User not found');
     if (user.isActive) return user;
     const updatedAt = new Date();
-    await this.repo.updateActiveById(uuid, true, updatedAt);
+    await this.repo.updateActiveById(input.uuid, true, updatedAt);
     return { ...user, isActive: true, updatedAt };
   }
 }

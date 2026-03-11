@@ -3,21 +3,37 @@ import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import {
   CreateUserUseCase,
-  CreateUserInputDTO,
+  CreateUserDTO,
+  type CreateUserInputDTO,
 } from '../../application/use-cases/create-user.use-case';
 import { ListUsersUseCase } from '../../application/use-cases/list-users.use-case';
-import { ActivateUserUseCase } from '../../application/use-cases/activate-user.use-case';
 import {
+  ActivateUserDTO,
+  ActivateUserUseCase,
+  type ActivateUserInputDTO,
+} from '../../application/use-cases/activate-user.use-case';
+import {
+  ChangeUserNameBodyDTO,
+  ChangeUserNameParamDTO,
   ChangeUserNameUseCase,
-  ChangeUserNameInputDTO,
+  type ChangeUserNameBodyInputDTO,
+  type ChangeUserNameParamInputDTO,
 } from '../../application/use-cases/change-user-name.use-case';
 import {
+  ChangeUserPasswordBodyDTO,
+  ChangeUserPasswordParamDTO,
   ChangeUserPasswordUseCase,
-  ChangeUserPasswordInputDTO,
+  type ChangeUserPasswordBodyInputDTO,
+  type ChangeUserPasswordParamInputDTO,
 } from '../../application/use-cases/change-user-password.use-case';
-import { DeactivateUserUseCase } from '../../application/use-cases/deactivate-user.use-case';
+import {
+  DeactivateUserDTO,
+  DeactivateUserUseCase,
+  type DeactivateUserInputDTO,
+} from '../../application/use-cases/deactivate-user.use-case';
 import { UserEntity } from '../../domain/user.entity';
 import { Authenticated } from '../../../../common/http/access.decorator';
+import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
 
 @ApiTags('Users')
 @Controller('users')
@@ -54,15 +70,15 @@ export class UserController {
       required: ['name', 'email', 'password', 'role', 'credits'],
     },
   })
-  async create(@Body() body: CreateUserInputDTO) {
+  async create(@Body(new ZodValidationPipe(CreateUserDTO)) body: CreateUserInputDTO) {
     const entity = await this.createUseCase.execute(body);
     return this.toJSON(entity);
   }
 
   @Post(':uuid/activate')
   @Authenticated('ADMIN')
-  async activate(@Param('uuid') uuid: string) {
-    const entity = await this.activateUseCase.execute({ uuid });
+  async activate(@Param(new ZodValidationPipe(ActivateUserDTO)) params: ActivateUserInputDTO) {
+    const entity = await this.activateUseCase.execute(params);
     return this.toJSON(entity);
   }
 
@@ -75,8 +91,11 @@ export class UserController {
       required: ['name'],
     },
   })
-  async changeName(@Param('uuid') uuid: string, @Body() body: ChangeUserNameInputDTO) {
-    const entity = await this.changeNameUseCase.execute({ uuid, name: body.name });
+  async changeName(
+    @Param(new ZodValidationPipe(ChangeUserNameParamDTO)) params: ChangeUserNameParamInputDTO,
+    @Body(new ZodValidationPipe(ChangeUserNameBodyDTO)) body: ChangeUserNameBodyInputDTO,
+  ) {
+    const entity = await this.changeNameUseCase.execute({ uuid: params.uuid, name: body.name });
     return this.toJSON(entity);
   }
 
@@ -89,17 +108,24 @@ export class UserController {
       required: ['newPassword'],
     },
   })
-  async changePassword(@Param('uuid') uuid: string, @Body() body: ChangeUserPasswordInputDTO) {
+  async changePassword(
+    @Param(new ZodValidationPipe(ChangeUserPasswordParamDTO))
+    params: ChangeUserPasswordParamInputDTO,
+    @Body(new ZodValidationPipe(ChangeUserPasswordBodyDTO))
+    body: ChangeUserPasswordBodyInputDTO,
+  ) {
     const entity = await this.changePasswordUseCase.execute({
-      uuid,
+      uuid: params.uuid,
       newPassword: body.newPassword,
     });
     return this.toJSON(entity);
   }
 
   @Post(':uuid/deactivate')
-  async deactivate(@Param('uuid') uuid: string) {
-    const entity = await this.deactivateUseCase.execute({ uuid });
+  async deactivate(
+    @Param(new ZodValidationPipe(DeactivateUserDTO)) params: DeactivateUserInputDTO,
+  ) {
+    const entity = await this.deactivateUseCase.execute(params);
     return this.toJSON(entity);
   }
 

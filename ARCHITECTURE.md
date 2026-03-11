@@ -28,6 +28,7 @@ Each module must follow the same internal structure:
   - repository implementations and external integrations
 - presentation
   - controllers, strategies, guards, and transport-specific DTOs
+  - transport validation pipes
 - <module>.module.ts
 
 Example:
@@ -49,6 +50,8 @@ Example:
 - Domain service interfaces (e.g. PasswordHasher) live in domain and are injected via tokens.
 - Infrastructure implements repository interfaces and is the only layer that touches external services.
 - Presentation is responsible for HTTP transport and mapping input/output.
+- Presentation validates HTTP input through ZodValidationPipe before calling use cases.
+- Use cases receive already-validated typed input and focus on business rules.
 
 ## Messaging & Events
 
@@ -107,7 +110,14 @@ Example:
 - DI tokens for interfaces: export const <TOKEN> in the same domain file
 - Repository implementations: <name>.repository.<provider>.ts
 - Use cases: <action>-<entity>.use-case.ts
-- DTO schemas: use Zod in use cases
+- DTO schemas: define Zod schemas in use-case files and consume them in presentation pipes
+
+## Validation Flow (HTTP)
+
+- Zod schemas are defined close to the related use case (input contract source of truth).
+- Controllers apply `ZodValidationPipe` in `@Body()` and `@Param()` to validate request data.
+- Pipe errors are returned as `400 Bad Request` with field-aware messages (e.g. `password: String must contain at least 8 character(s)`).
+- Use cases do not re-parse DTOs with Zod; they trust validated input from presentation and execute business logic only.
 
 ## Dependency Direction
 

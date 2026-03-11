@@ -33,13 +33,12 @@ export class RegisterUserUseCase {
   ) {}
 
   async execute(input: RegisterUserInputDTO): Promise<RegisterUserOutputDTO> {
-    const parsed = RegisterUserDTO.parse(input);
-    const exists = await this.users.existsByEmail(parsed.email.toLowerCase());
+    const exists = await this.users.existsByEmail(input.email.toLowerCase());
     if (exists) throw new ConflictException('Email already registered');
-    const passwordHash = await this.hasher.hash(parsed.password);
+    const passwordHash = await this.hasher.hash(input.password);
     const entity = await this.users.create({
-      name: parsed.name,
-      email: parsed.email,
+      name: input.name,
+      email: input.email,
       passwordHash,
       role: USER_CONSTANTS.ROLE_DEFAULT,
       credits: USER_CONSTANTS.CREDITS_DEFAULT,

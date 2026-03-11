@@ -17,8 +17,7 @@ export class GetMeUseCase {
   constructor(private readonly users: UserRepository) {}
 
   async execute(input: GetMeInputDTO): Promise<GetMeOutputDTO> {
-    const { userId } = GetMeDTO.parse(input);
-    const user = await this.users.findById(userId);
+    const user = await this.users.findById(input.userId);
     if (!user) throw new NotFoundException('User not found');
     return {
       name: user.name,

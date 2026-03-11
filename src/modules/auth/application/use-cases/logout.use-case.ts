@@ -11,7 +11,6 @@ export class LogoutUseCase {
   constructor(private readonly tokens: RefreshTokenRepository) {}
 
   async execute(input: LogoutInputDTO): Promise<void> {
-    const { refreshToken, userId } = LogoutDTO.parse(input);
-    await this.tokens.deleteByTokenAndUserId(refreshToken, userId);
+    await this.tokens.deleteByTokenAndUserId(input.refreshToken, input.userId);
   }
 }

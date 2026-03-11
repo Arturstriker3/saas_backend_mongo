@@ -29,10 +29,9 @@ export class AuthenticateUserUseCase {
   ) {}
 
   async execute(input: LoginInputDTO): Promise<AuthenticateUserOutputDTO> {
-    const { email, password } = LoginDTO.parse(input);
-    const user = await this.users.findByEmailWithPassword(email);
+    const user = await this.users.findByEmailWithPassword(input.email);
     if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
-    const ok = await this.hasher.compare(password, user.passwordHash);
+    const ok = await this.hasher.compare(input.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
     const env = loadEnv();
     const accessToken = await this.jwt.signAsync(

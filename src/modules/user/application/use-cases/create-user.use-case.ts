@@ -24,14 +24,13 @@ export class CreateUserUseCase {
   }
 
   async execute(input: CreateUserInputDTO): Promise<UserEntity> {
-    const parsed = CreateUserDTO.parse(input);
-    const passwordHash = await this.hasher.hash(parsed.password);
+    const passwordHash = await this.hasher.hash(input.password);
     return this.repo.create({
-      name: parsed.name,
-      email: parsed.email,
+      name: input.name,
+      email: input.email,
       passwordHash,
-      role: parsed.role,
-      credits: parsed.credits,
+      role: input.role,
+      credits: input.credits,
     });
   }
 }

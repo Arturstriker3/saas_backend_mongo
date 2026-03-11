@@ -23,8 +23,7 @@ export class RefreshTokenUseCase {
   ) {}
 
   async execute(input: RefreshInputDTO): Promise<RefreshTokenOutputDTO> {
-    const { refreshToken } = RefreshDTO.parse(input);
-    const record = await this.tokens.findByToken(refreshToken);
+    const record = await this.tokens.findByToken(input.refreshToken);
     if (!record) throw new UnauthorizedException('Refresh token not found');
     if (record.expiresAt.getTime() <= Date.now())
       throw new UnauthorizedException('Refresh token expired');
@@ -38,7 +37,7 @@ export class RefreshTokenUseCase {
     const newRefresh = randomBytes(32).toString('hex');
     const now = new Date();
     const expires = new Date(now.getTime() + parseInt(env.REFRESH_TOKEN_TTL, 10) * 1000);
-    await this.tokens.deleteByToken(refreshToken);
+    await this.tokens.deleteByToken(input.refreshToken);
     await this.tokens.save({
       uuid: uuidv7(),
       token: newRefresh,

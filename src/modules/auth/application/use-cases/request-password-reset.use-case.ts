@@ -18,8 +18,7 @@ export class RequestPasswordResetUseCase {
   ) {}
 
   async execute(input: RequestPasswordResetInputDTO): Promise<boolean> {
-    const { email } = RequestPasswordResetDTO.parse(input);
-    const user = await this.users.findByEmail(email.toLowerCase());
+    const user = await this.users.findByEmail(input.email.toLowerCase());
     if (!user) return true;
     const env = loadEnv();
     const token = randomBytes(32).toString('hex');

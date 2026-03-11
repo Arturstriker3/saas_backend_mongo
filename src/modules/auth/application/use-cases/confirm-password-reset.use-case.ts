@@ -22,13 +22,12 @@ export class ConfirmPasswordResetUseCase {
   ) {}
 
   async execute(input: ConfirmPasswordResetInputDTO): Promise<void> {
-    const { token, newPassword } = ConfirmPasswordResetDTO.parse(input);
-    const record = await this.getValidResetRecord(token);
+    const record = await this.getValidResetRecord(input.token);
     const user = await this.getExistingUser(record.userId);
-    const hash = await this.hasher.hash(newPassword);
+    const hash = await this.hasher.hash(input.newPassword);
     const updatedAt = new Date();
     await this.users.updatePasswordById(user.uuid, hash, updatedAt);
-    await this.resets.deleteByToken(token);
+    await this.resets.deleteByToken(input.token);
   }
 
   private async getValidResetRecord(token: string): Promise<PasswordResetRecord> {
