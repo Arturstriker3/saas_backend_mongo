@@ -77,7 +77,9 @@ export class UserController {
 
   @Post(':uuid/activate')
   @Authenticated('ADMIN')
-  async activate(@Param(new ZodValidationPipe(ActivateUserDTO)) params: ActivateUserInputDTO) {
+  async activate(
+    @Param(new ZodValidationPipe(ActivateUserDTO)) params: ActivateUserInputDTO,
+  ) {
     const entity = await this.activateUseCase.execute(params);
     return this.toJSON(entity);
   }
