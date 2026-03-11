@@ -87,6 +87,12 @@ Example:
 - Avoid countDocuments() on large collections.
 - Keep queries simple, predictable, and with minimal payload to reduce CPU and memory usage in a low-instance API.
 
+## Mongo Resilience
+
+- Mongo connection uses explicit pool and timeout tuning via env in src/common/database/mongo.connection.ts.
+- Current tuned options: maxPoolSize, minPoolSize, serverSelectionTimeoutMS, socketTimeoutMS, connectTimeoutMS, maxIdleTimeMS.
+- Refresh token and password reset collections use TTL index on expiresAt for automatic expiration cleanup.
+
 ## Testing (Bun)
 
 - Tests live alongside the code they validate.

@@ -12,13 +12,15 @@ export type RefreshTokenDoc = Document & {
 };
 
 export function makeRefreshTokenSchema() {
-  return new Schema<RefreshTokenDoc>({
+  const schema = new Schema<RefreshTokenDoc>({
     uuid: { type: String, unique: true, index: true, required: true },
     token: { type: String, unique: true, index: true, required: true },
     userId: { type: String, index: true, required: true },
     createdAt: { type: Date, required: true },
     expiresAt: { type: Date, required: true },
   });
+  schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  return schema;
 }
 
 import {

@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import mongoose from 'mongoose';
 import { loadEnv } from '../../config/env';
+import { buildMongoConnectionOptions } from '../mongo.connection';
 import { v7 as uuidv7 } from 'uuid';
 import * as argon2 from 'argon2';
 
@@ -8,9 +9,7 @@ const logger = new Logger('Seed');
 
 export async function runSeed() {
   const env = loadEnv();
-  const conn = await mongoose.createConnection(env.MONGO_URI, {
-    dbName: env.MONGO_DB_NAME,
-  });
+  const conn = await mongoose.createConnection(env.MONGO_URI, buildMongoConnectionOptions(env));
   const userSchema = new mongoose.Schema({
     uuid: { type: String, unique: true, index: true, required: true },
     email: { type: String, unique: true, index: true, required: true },
