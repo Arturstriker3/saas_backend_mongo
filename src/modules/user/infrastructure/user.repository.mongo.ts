@@ -3,7 +3,8 @@ import { Model } from 'mongoose';
 import { UserRepository } from '../domain/user.repository.interface';
 import { UserEntity, USER_CONSTANTS, makeUserSchema } from '../domain/user.entity';
 import { v7 as uuidv7 } from 'uuid';
-import { MONGO_CONNECTION, MongooseConnection } from '../../../common/database/mongo.connection';
+import { MONGO_CONNECTION } from '../../../common/database/mongo.connection';
+import type { MongooseConnection } from '../../../common/database/mongo.connection';
 
 export class UserRepositoryMongo implements UserRepository {
   private readonly model: Model<UserEntity>;
@@ -77,15 +78,8 @@ export class UserRepositoryMongo implements UserRepository {
     return result.matchedCount > 0;
   }
 
-  async updatePasswordById(
-    id: string,
-    passwordHash: string,
-    updatedAt: Date,
-  ): Promise<boolean> {
-    const result = await this.model.updateOne(
-      { uuid: id },
-      { $set: { passwordHash, updatedAt } },
-    );
+  async updatePasswordById(id: string, passwordHash: string, updatedAt: Date): Promise<boolean> {
+    const result = await this.model.updateOne({ uuid: id }, { $set: { passwordHash, updatedAt } });
     return result.matchedCount > 0;
   }
 

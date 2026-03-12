@@ -22,7 +22,8 @@ import { RequestPasswordResetUseCase } from './application/use-cases/request-pas
 import { ConfirmPasswordResetUseCase } from './application/use-cases/confirm-password-reset.use-case';
 import { RegisterUserUseCase } from './application/use-cases/register-user.use-case';
 import { GetMeUseCase } from './application/use-cases/get-me.use-case';
-import { MONGO_CONNECTION, MongooseConnection } from '../../common/database/mongo.connection';
+import { MONGO_CONNECTION } from '../../common/database/mongo.connection';
+import type { MongooseConnection } from '../../common/database/mongo.connection';
 import {
   RefreshTokenRepositoryMongo,
   REFRESH_TOKEN_MODEL,

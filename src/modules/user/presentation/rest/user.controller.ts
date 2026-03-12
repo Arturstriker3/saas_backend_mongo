@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Req } from '@nestjs/common';
 import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
+import type { FastifyRequest } from 'fastify';
 import {
   CreateUserUseCase,
   CreateUserDTO,
@@ -27,7 +28,6 @@ import {
   type ChangeUserPasswordParamInputDTO,
 } from '../../application/use-cases/change-user-password.use-case';
 import {
-  DeactivateUserDTO,
   DeactivateUserUseCase,
   type DeactivateUserInputDTO,
 } from '../../application/use-cases/deactivate-user.use-case';
@@ -77,9 +77,7 @@ export class UserController {
 
   @Post(':uuid/activate')
   @Authenticated('ADMIN')
-  async activate(
-    @Param(new ZodValidationPipe(ActivateUserDTO)) params: ActivateUserInputDTO,
-  ) {
+  async activate(@Param(new ZodValidationPipe(ActivateUserDTO)) params: ActivateUserInputDTO) {
     const entity = await this.activateUseCase.execute(params);
     return this.toJSON(entity);
   }
@@ -123,10 +121,10 @@ export class UserController {
     return this.toJSON(entity);
   }
 
-  @Post(':uuid/deactivate')
-  async deactivate(
-    @Param(new ZodValidationPipe(DeactivateUserDTO)) params: DeactivateUserInputDTO,
-  ) {
+  @Post('deactivate')
+  @Authenticated()
+  async deactivate(@Req() req: FastifyRequest & { user: { userId: string } }) {
+    const params: DeactivateUserInputDTO = { userId: req.user.userId };
     const entity = await this.deactivateUseCase.execute(params);
     return this.toJSON(entity);
   }

@@ -202,7 +202,7 @@ describe('RefreshTokenUseCase', () => {
       deps.users,
       deps.jwt as unknown as JwtService,
     );
-    const now = new Date('2025-01-01T10:00:00.000Z');
+    const now = new Date();
     const record: RefreshTokenRecord = {
       uuid: 'token-uuid',
       token: 'refresh-token',
@@ -223,5 +223,84 @@ describe('RefreshTokenUseCase', () => {
     expect(error).toBeInstanceOf(UnauthorizedException);
     expect(deps.tokens.deleteByToken.calls.length).toBe(0);
     expect(deps.tokens.save.calls.length).toBe(0);
+  });
+
+  it('throws when user is deactivated and not admin', async () => {
+    const deps = createDeps();
+    const useCase = new RefreshTokenUseCase(
+      deps.tokens,
+      deps.users,
+      deps.jwt as unknown as JwtService,
+    );
+    const now = new Date();
+    const record: RefreshTokenRecord = {
+      uuid: 'token-uuid',
+      token: 'refresh-token',
+      userId: 'user-uuid',
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + 60_000),
+    };
+    const user = {
+      uuid: 'user-uuid',
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      passwordHash: 'hashed',
+      role: 'USER',
+      createdAt: now,
+      updatedAt: now,
+      isActive: false,
+      credits: 0,
+    } as UserEntity;
+    deps.tokens.findByToken.setResolvedValue(record);
+    deps.users.findById.setResolvedValue(user);
+
+    let error: unknown;
+    try {
+      await useCase.execute({ refreshToken: 'refresh-token' });
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    expect(deps.jwt.signAsync.calls.length).toBe(0);
+    expect(deps.tokens.deleteByToken.calls.length).toBe(0);
+    expect(deps.tokens.save.calls.length).toBe(0);
+  });
+
+  it('allows refresh when user is admin even if deactivated', async () => {
+    const deps = createDeps();
+    const useCase = new RefreshTokenUseCase(
+      deps.tokens,
+      deps.users,
+      deps.jwt as unknown as JwtService,
+    );
+    const now = new Date();
+    const record: RefreshTokenRecord = {
+      uuid: 'token-uuid',
+      token: 'refresh-token',
+      userId: 'admin-uuid',
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + 60_000),
+    };
+    const admin = {
+      uuid: 'admin-uuid',
+      name: 'Admin',
+      email: 'admin@example.com',
+      passwordHash: 'hashed',
+      role: 'ADMIN',
+      createdAt: now,
+      updatedAt: now,
+      isActive: false,
+      credits: 0,
+    } as UserEntity;
+    deps.tokens.findByToken.setResolvedValue(record);
+    deps.users.findById.setResolvedValue(admin);
+    deps.jwt.signAsync.setResolvedValue('access-token');
+
+    const result = await useCase.execute({ refreshToken: 'refresh-token' });
+
+    expect(result.accessToken).toBe('access-token');
+    expect(deps.tokens.deleteByToken.calls).toEqual([['refresh-token']]);
+    expect(deps.tokens.save.calls.length).toBe(1);
   });
 });

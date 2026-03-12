@@ -2,10 +2,11 @@ import { z } from 'zod';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import { RefreshTokenRepository } from '../../domain/refresh-token.repository.interface';
-import { UserRepository } from '../../../user/domain/user.repository.interface';
+import type { UserRepository } from '../../../user/domain/user.repository.interface';
 import { loadEnv } from '../../../../common/config/env';
 import { randomBytes } from 'crypto';
 import { v7 as uuidv7 } from 'uuid';
+import { isInactiveUserBlocked } from '../../domain/user-access.policy';
 
 export const RefreshDTO = z.object({ refreshToken: z.string().min(1) });
 export type RefreshInputDTO = z.infer<typeof RefreshDTO>;
@@ -29,6 +30,7 @@ export class RefreshTokenUseCase {
       throw new UnauthorizedException('Refresh token expired');
     const user = await this.users.findById(record.userId);
     if (!user) throw new UnauthorizedException('User not found');
+    if (isInactiveUserBlocked(user)) throw new UnauthorizedException('User is deactivated');
     const env = loadEnv();
     const accessToken = await this.jwt.signAsync(
       { sub: user.uuid, role: user.role },
