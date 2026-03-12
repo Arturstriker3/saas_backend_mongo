@@ -3,7 +3,6 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { loadEnv } from '../../common/config/env';
 import { DatabaseModule } from '../../common/database/database.module';
-import { EmailModule } from '../../common/email/email.module';
 import { MessagingModule } from '../../common/messaging/messaging.module';
 import { EVENT_BUS } from '../../common/messaging/event-bus.interface';
 import { UserModule } from '../user/user.module';
@@ -40,7 +39,6 @@ import {
     DatabaseModule,
     UserModule,
     RoleModule,
-    EmailModule,
     MessagingModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
