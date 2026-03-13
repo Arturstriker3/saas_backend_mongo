@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
@@ -123,6 +123,7 @@ export class UserController {
 
   @Post('deactivate')
   @Authenticated()
+  @HttpCode(HttpStatus.OK)
   async deactivate(@Req() req: FastifyRequest & { user: { userId: string } }) {
     const params: DeactivateUserInputDTO = { userId: req.user.userId };
     const entity = await this.deactivateUseCase.execute(params);

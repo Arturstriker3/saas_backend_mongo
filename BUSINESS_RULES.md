@@ -17,6 +17,8 @@ Este documento é a fonte de verdade para regras de negócio e regras funcionais
 - Endpoint: `POST /users/deactivate`
 - Escopo: usuário autenticado desativa a própria conta.
 - Identidade: o `userId` vem do token JWT autenticado, sem receber `uuid` por rota/body.
+- Status HTTP de sucesso: `200 OK`.
+- Payload de sucesso: retorna o usuário atualizado com `isActive = false`.
 - Resultado:
   - Se usuário não existir: erro de não encontrado.
   - Se conta for `ADMIN`: erro de regra de negócio (proibido).
