@@ -147,7 +147,8 @@ describe('AuthController', () => {
       updatedAt: now,
       isActive: true,
       role: 'USER',
-      credits: 0,
+      language: 'portuguese',
+      birthDate: null,
     };
     mocks.registerUseCase.execute.setResolvedValue(output);
 
@@ -218,7 +219,8 @@ describe('AuthController', () => {
       email: 'john.doe@example.com',
       createdAt: now,
       role: 'USER',
-      credits: 0,
+      language: 'portuguese',
+      birthDate: null,
     };
     mocks.getMeUseCase.execute.setResolvedValue(output);
 

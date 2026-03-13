@@ -122,9 +122,10 @@ export class AuthController {
         email: { type: 'string', format: 'email' },
         createdAt: { type: 'string', format: 'date-time' },
         role: { type: 'string' },
-        credits: { type: 'number' },
+        language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
+        birthDate: { type: 'string', format: 'date-time', nullable: true },
       },
-      required: ['name', 'email', 'createdAt', 'role', 'credits'],
+      required: ['name', 'email', 'createdAt', 'role', 'language', 'birthDate'],
     },
   })
   @ApiUnauthorizedResponse({
@@ -171,9 +172,20 @@ export class AuthController {
         updatedAt: { type: 'string', format: 'date-time' },
         isActive: { type: 'boolean' },
         role: { type: 'string' },
-        credits: { type: 'number' },
+        language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
+        birthDate: { type: 'string', format: 'date-time', nullable: true },
       },
-      required: ['uuid', 'name', 'email', 'createdAt', 'updatedAt', 'isActive', 'role', 'credits'],
+      required: [
+        'uuid',
+        'name',
+        'email',
+        'createdAt',
+        'updatedAt',
+        'isActive',
+        'role',
+        'language',
+        'birthDate',
+      ],
     },
   })
   @ApiConflictResponse({

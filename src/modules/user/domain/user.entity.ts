@@ -1,6 +1,9 @@
 import { Schema } from 'mongoose';
 import { ROLES } from '../../role/domain/role.types';
 
+export const USER_LANGUAGES = ['portuguese', 'english', 'spanish'] as const;
+export type UserLanguage = (typeof USER_LANGUAGES)[number];
+
 export const USER_CONSTANTS = {
   NAME_MIN_LENGTH: 2,
   NAME_MAX_LENGTH: 100,
@@ -9,9 +12,7 @@ export const USER_CONSTANTS = {
   PASSWORD_MIN_LENGTH: 8,
   ROLE_DEFAULT: 'USER',
   IS_ACTIVE_DEFAULT: true,
-  CREDITS_DEFAULT: 0,
-  CREDITS_MIN: 0,
-  CREDITS_MAX: 999999,
+  LANGUAGE_DEFAULT: 'portuguese' as UserLanguage,
 };
 
 export type UserEntity = {
@@ -23,7 +24,8 @@ export type UserEntity = {
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
-  credits: number;
+  language: UserLanguage;
+  birthDate: Date | null;
 };
 
 export function makeUserSchema() {
@@ -51,16 +53,16 @@ export function makeUserSchema() {
       default: USER_CONSTANTS.ROLE_DEFAULT,
       required: true,
     },
+    language: {
+      type: String,
+      enum: USER_LANGUAGES,
+      default: USER_CONSTANTS.LANGUAGE_DEFAULT,
+      required: true,
+    },
+    birthDate: { type: Date, default: null, required: false },
     isActive: { type: Boolean, default: USER_CONSTANTS.IS_ACTIVE_DEFAULT, required: true },
     createdAt: { type: Date, default: Date.now, required: true },
     updatedAt: { type: Date, default: Date.now, required: true },
-    credits: {
-      type: Number,
-      default: USER_CONSTANTS.CREDITS_DEFAULT,
-      min: USER_CONSTANTS.CREDITS_MIN,
-      max: USER_CONSTANTS.CREDITS_MAX,
-      required: true,
-    },
   });
 
   return schema;

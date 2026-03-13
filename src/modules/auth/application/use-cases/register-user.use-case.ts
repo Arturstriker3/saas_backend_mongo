@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ConflictException } from '@nestjs/common';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { PasswordHasher } from '../../domain/password-hasher.interface';
-import { USER_CONSTANTS } from '../../../user/domain/user.entity';
+import { USER_CONSTANTS, UserEntity } from '../../../user/domain/user.entity';
 import { EventBus } from '../../../../common/messaging/event-bus.interface';
 import { UserRegisteredEvent } from '../../../../common/messaging/events';
 
@@ -22,7 +22,8 @@ export type RegisterUserOutputDTO = {
   updatedAt: Date;
   isActive: boolean;
   role: string;
-  credits: number;
+  language: UserEntity['language'];
+  birthDate: UserEntity['birthDate'];
 };
 
 export class RegisterUserUseCase {
@@ -41,7 +42,8 @@ export class RegisterUserUseCase {
       email: input.email,
       passwordHash,
       role: USER_CONSTANTS.ROLE_DEFAULT,
-      credits: USER_CONSTANTS.CREDITS_DEFAULT,
+      language: USER_CONSTANTS.LANGUAGE_DEFAULT,
+      birthDate: null,
     });
     const event: UserRegisteredEvent = {
       name: 'UserRegistered',
@@ -57,7 +59,8 @@ export class RegisterUserUseCase {
       updatedAt: entity.updatedAt,
       isActive: entity.isActive,
       role: entity.role,
-      credits: entity.credits,
+      language: entity.language,
+      birthDate: entity.birthDate,
     };
   }
 }

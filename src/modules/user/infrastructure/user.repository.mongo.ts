@@ -18,7 +18,8 @@ export class UserRepositoryMongo implements UserRepository {
     email: string;
     passwordHash: string;
     role: string;
-    credits: number;
+    language: UserEntity['language'];
+    birthDate: UserEntity['birthDate'];
   }): Promise<UserEntity> {
     const uuid = uuidv7();
     const now = new Date();
@@ -28,10 +29,11 @@ export class UserRepositoryMongo implements UserRepository {
       name: props.name.trim(),
       passwordHash: props.passwordHash,
       role: props.role ?? USER_CONSTANTS.ROLE_DEFAULT,
+      language: props.language ?? USER_CONSTANTS.LANGUAGE_DEFAULT,
+      birthDate: props.birthDate,
       createdAt: now,
       updatedAt: now,
       isActive: true,
-      credits: props.credits,
     });
     return doc as UserEntity;
   }
@@ -39,7 +41,7 @@ export class UserRepositoryMongo implements UserRepository {
   async findAll(): Promise<UserEntity[]> {
     const docs = await this.model
       .find({})
-      .select('uuid name email createdAt updatedAt isActive role credits')
+      .select('uuid name email createdAt updatedAt isActive role language birthDate')
       .lean();
     return docs as unknown as UserEntity[];
   }
@@ -47,7 +49,7 @@ export class UserRepositoryMongo implements UserRepository {
   async findById(id: string): Promise<UserEntity | null> {
     const doc = await this.model
       .findOne({ uuid: id })
-      .select('uuid name email createdAt updatedAt isActive role credits')
+      .select('uuid name email createdAt updatedAt isActive role language birthDate')
       .lean();
     return (doc as UserEntity) ?? null;
   }
@@ -55,7 +57,7 @@ export class UserRepositoryMongo implements UserRepository {
   async findByEmail(email: string): Promise<UserEntity | null> {
     const doc = await this.model
       .findOne({ email: email.toLowerCase() })
-      .select('uuid name email createdAt updatedAt isActive role credits')
+      .select('uuid name email createdAt updatedAt isActive role language birthDate')
       .lean();
     return (doc as UserEntity) ?? null;
   }
@@ -63,7 +65,7 @@ export class UserRepositoryMongo implements UserRepository {
   async findByEmailWithPassword(email: string): Promise<UserEntity | null> {
     const doc = await this.model
       .findOne({ email: email.toLowerCase() })
-      .select('uuid name email createdAt updatedAt isActive role credits +passwordHash')
+      .select('uuid name email createdAt updatedAt isActive role language birthDate +passwordHash')
       .lean();
     return (doc as UserEntity) ?? null;
   }

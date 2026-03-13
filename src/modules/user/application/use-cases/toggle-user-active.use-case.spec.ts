@@ -19,7 +19,8 @@ type UserRepositoryMock = {
         email: string;
         passwordHash: string;
         role: string;
-        credits: number;
+        language: UserEntity['language'];
+        birthDate: UserEntity['birthDate'];
       },
     ],
     Promise<UserEntity>
@@ -78,10 +79,11 @@ describe('ToggleUserActiveUseCase', () => {
       email: 'john.doe@example.com',
       passwordHash: 'hashed',
       role: 'USER',
+      language: 'portuguese',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: true,
-      credits: 0,
     } as UserEntity;
     repo.findById.setResolvedValue(user);
     repo.updateActiveById.setResolvedValue(true);
@@ -104,10 +106,11 @@ describe('ToggleUserActiveUseCase', () => {
       email: 'john.doe@example.com',
       passwordHash: 'hashed',
       role: 'USER',
+      language: 'portuguese',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: false,
-      credits: 0,
     } as UserEntity;
     repo.findById.setResolvedValue(user);
     repo.updateActiveById.setResolvedValue(true);
@@ -146,10 +149,11 @@ describe('ToggleUserActiveUseCase', () => {
       email: 'admin@example.com',
       passwordHash: 'hashed',
       role: 'ADMIN',
+      language: 'portuguese',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: true,
-      credits: 0,
     } as UserEntity;
     repo.findById.setResolvedValue(admin);
 

@@ -20,7 +20,8 @@ type UserRepositoryMock = {
         email: string;
         passwordHash: string;
         role: string;
-        credits: number;
+        language: UserEntity['language'];
+        birthDate: UserEntity['birthDate'];
       },
     ],
     Promise<UserEntity>
@@ -107,10 +108,11 @@ describe('ConfirmPasswordResetUseCase', () => {
       email: 'john.doe@example.com',
       passwordHash: 'old-hash',
       role: 'USER',
+      language: 'portuguese',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: true,
-      credits: 0,
     } as UserEntity;
     const record: PasswordResetRecord = {
       uuid: 'reset-uuid',

@@ -21,7 +21,8 @@ type UserRepositoryMock = {
         email: string;
         passwordHash: string;
         role: string;
-        credits: number;
+        language: UserEntity['language'];
+        birthDate: UserEntity['birthDate'];
       },
     ],
     Promise<UserEntity>
@@ -119,10 +120,11 @@ describe('RefreshTokenUseCase', () => {
       email: 'john.doe@example.com',
       passwordHash: 'hashed',
       role: 'USER',
+      language: 'portuguese',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: true,
-      credits: 0,
     } as UserEntity;
     deps.tokens.findByToken.setResolvedValue(record);
     deps.users.findById.setResolvedValue(user);
@@ -246,10 +248,11 @@ describe('RefreshTokenUseCase', () => {
       email: 'john.doe@example.com',
       passwordHash: 'hashed',
       role: 'USER',
+      language: 'english',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: false,
-      credits: 0,
     } as UserEntity;
     deps.tokens.findByToken.setResolvedValue(record);
     deps.users.findById.setResolvedValue(user);
@@ -288,10 +291,11 @@ describe('RefreshTokenUseCase', () => {
       email: 'admin@example.com',
       passwordHash: 'hashed',
       role: 'ADMIN',
+      language: 'spanish',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: false,
-      credits: 0,
     } as UserEntity;
     deps.tokens.findByToken.setResolvedValue(record);
     deps.users.findById.setResolvedValue(admin);

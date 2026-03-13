@@ -48,10 +48,11 @@ describe('JwtStrategy', () => {
       email: 'john@example.com',
       passwordHash: 'hashed',
       role: 'USER',
+      language: 'portuguese',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: true,
-      credits: 0,
     } as UserEntity;
     deps.findById.setResolvedValue(user);
 
@@ -70,10 +71,11 @@ describe('JwtStrategy', () => {
       email: 'john@example.com',
       passwordHash: 'hashed',
       role: 'USER',
+      language: 'english',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: false,
-      credits: 0,
     } as UserEntity;
     deps.findById.setResolvedValue(user);
 
@@ -96,10 +98,11 @@ describe('JwtStrategy', () => {
       email: 'admin@example.com',
       passwordHash: 'hashed',
       role: 'ADMIN',
+      language: 'spanish',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: false,
-      credits: 0,
     } as UserEntity;
     deps.findById.setResolvedValue(admin);
 

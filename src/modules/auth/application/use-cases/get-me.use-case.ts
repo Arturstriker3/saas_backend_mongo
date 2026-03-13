@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { NotFoundException } from '@nestjs/common';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
+import { UserEntity } from '../../../user/domain/user.entity';
 
 export const GetMeDTO = z.object({ userId: z.string().min(1) });
 export type GetMeInputDTO = z.infer<typeof GetMeDTO>;
@@ -10,7 +11,8 @@ export type GetMeOutputDTO = {
   email: string;
   createdAt: Date;
   role: string;
-  credits: number;
+  language: UserEntity['language'];
+  birthDate: UserEntity['birthDate'];
 };
 
 export class GetMeUseCase {
@@ -24,7 +26,8 @@ export class GetMeUseCase {
       email: user.email,
       createdAt: user.createdAt,
       role: user.role,
-      credits: user.credits,
+      language: user.language,
+      birthDate: user.birthDate,
     };
   }
 }

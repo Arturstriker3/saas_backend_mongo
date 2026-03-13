@@ -16,10 +16,11 @@ export async function runSeed() {
     name: { type: String, required: true },
     passwordHash: { type: String, required: true },
     role: { type: String, required: true },
+    language: { type: String, required: true, default: 'portuguese' },
+    birthDate: { type: Date, required: false, default: null },
     createdAt: { type: Date, required: true },
     updatedAt: { type: Date, required: true },
     isActive: { type: Boolean, required: true },
-    credits: { type: Number, required: true, default: 0, min: 0 },
   });
   const UserModel = conn.model('users', userSchema);
   try {
@@ -42,10 +43,11 @@ export async function runSeed() {
       name,
       passwordHash,
       role,
+      language: 'portuguese',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive,
-      credits: 0,
     });
     logger.log('Applied: SUPER ADMIN created');
     await conn.close();

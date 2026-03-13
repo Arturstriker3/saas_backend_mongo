@@ -21,7 +21,8 @@ type UserRepositoryMock = {
         email: string;
         passwordHash: string;
         role: string;
-        credits: number;
+        language: UserEntity['language'];
+        birthDate: UserEntity['birthDate'];
       },
     ],
     Promise<UserEntity>
@@ -109,10 +110,11 @@ describe('RegisterUserUseCase', () => {
       email: input.email,
       passwordHash: 'hashed',
       role: 'USER',
+      language: 'portuguese',
+      birthDate: null,
       createdAt: now,
       updatedAt: now,
       isActive: true,
-      credits: 0,
     } as UserEntity;
     deps.users.existsByEmail.setResolvedValue(false);
     deps.hasher.hash.setResolvedValue('hashed');
@@ -129,7 +131,8 @@ describe('RegisterUserUseCase', () => {
           email: input.email,
           passwordHash: 'hashed',
           role: 'USER',
-          credits: 0,
+          language: 'portuguese',
+          birthDate: null,
         },
       ],
     ]);
@@ -153,7 +156,8 @@ describe('RegisterUserUseCase', () => {
       updatedAt: entity.updatedAt,
       isActive: entity.isActive,
       role: entity.role,
-      credits: entity.credits,
+      language: entity.language,
+      birthDate: entity.birthDate,
     });
   });
 

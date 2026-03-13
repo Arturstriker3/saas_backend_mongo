@@ -72,9 +72,10 @@ export class UserController {
         email: { type: 'string', format: 'email' },
         password: { type: 'string' },
         role: { type: 'string' },
-        credits: { type: 'number' },
+        language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
+        birthDate: { type: 'string', format: 'date-time', nullable: true },
       },
-      required: ['name', 'email', 'password', 'role', 'credits'],
+      required: ['name', 'email', 'password', 'role'],
     },
   })
   async create(@Body(new ZodValidationPipe(CreateUserDTO)) body: CreateUserInputDTO) {
@@ -158,7 +159,8 @@ export class UserController {
       updatedAt: entity.updatedAt,
       isActive: entity.isActive,
       role: entity.role,
-      credits: entity.credits,
+      language: entity.language,
+      birthDate: entity.birthDate,
     };
   }
 }

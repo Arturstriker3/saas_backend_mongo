@@ -6,7 +6,8 @@ export interface UserRepository {
     email: string;
     passwordHash: string;
     role: string;
-    credits: number;
+    language: UserEntity['language'];
+    birthDate: UserEntity['birthDate'];
   }): Promise<UserEntity>;
   findAll(): Promise<UserEntity[]>;
   findById(id: string): Promise<UserEntity | null>;

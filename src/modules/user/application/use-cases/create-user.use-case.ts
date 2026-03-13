@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { UserRepository } from '../../domain/user.repository.interface';
-import { UserEntity, USER_CONSTANTS } from '../../domain/user.entity';
+import {
+  UserEntity,
+  USER_CONSTANTS,
+  USER_LANGUAGES,
+} from '../../domain/user.entity';
 import { PasswordHasher } from '../../../auth/domain/password-hasher.interface';
 import { ROLES } from '../../../role/domain/role.types';
 
@@ -9,7 +13,8 @@ export const CreateUserDTO = z.object({
   email: z.string().email().max(USER_CONSTANTS.EMAIL_MAX_LENGTH),
   password: z.string().min(USER_CONSTANTS.PASSWORD_MIN_LENGTH),
   role: z.enum(ROLES),
-  credits: z.number().min(USER_CONSTANTS.CREDITS_MIN).max(USER_CONSTANTS.CREDITS_MAX),
+  language: z.enum(USER_LANGUAGES).default(USER_CONSTANTS.LANGUAGE_DEFAULT),
+  birthDate: z.coerce.date().nullable().default(null),
 });
 
 export type CreateUserInputDTO = z.infer<typeof CreateUserDTO>;
@@ -30,7 +35,8 @@ export class CreateUserUseCase {
       email: input.email,
       passwordHash,
       role: input.role,
-      credits: input.credits,
+      language: input.language,
+      birthDate: input.birthDate,
     });
   }
 }
