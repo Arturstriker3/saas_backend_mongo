@@ -8,6 +8,7 @@ import { ActivateUserUseCase } from './application/use-cases/activate-user.use-c
 import { ChangeUserNameUseCase } from './application/use-cases/change-user-name.use-case';
 import { ChangeUserPasswordUseCase } from './application/use-cases/change-user-password.use-case';
 import { DeactivateUserUseCase } from './application/use-cases/deactivate-user.use-case';
+import { ToggleUserActiveUseCase } from './application/use-cases/toggle-user-active.use-case';
 import { UserController } from './presentation/rest/user.controller';
 import { PasswordHasher, PASSWORD_HASHER } from '../auth/domain/password-hasher.interface';
 import { Argon2idPasswordHasher } from '../auth/infrastructure/password-hasher.argon2id';
@@ -51,6 +52,11 @@ import { Argon2idPasswordHasher } from '../auth/infrastructure/password-hasher.a
     {
       provide: DeactivateUserUseCase,
       useFactory: (repo: UserRepositoryMongo) => new DeactivateUserUseCase(repo),
+      inject: [UserRepositoryMongo],
+    },
+    {
+      provide: ToggleUserActiveUseCase,
+      useFactory: (repo: UserRepositoryMongo) => new ToggleUserActiveUseCase(repo),
       inject: [UserRepositoryMongo],
     },
   ],

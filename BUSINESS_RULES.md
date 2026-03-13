@@ -25,6 +25,19 @@ Este documento é a fonte de verdade para regras de negócio e regras funcionais
   - Se conta já estiver desativada: retorna estado atual sem nova alteração.
   - Se conta estiver ativa e for `USER`: marca `isActive = false` e atualiza `updatedAt`.
 
+## Admin Toggle Account Status Flow
+
+- Endpoint: `POST /users/:uuid/toggle-active`
+- Escopo: endpoint exclusivo para `ADMIN` alternar status de conta de outro usuário.
+- Identidade alvo: o `uuid` vem por parâmetro de rota.
+- Status HTTP de sucesso: `200 OK`.
+- Payload de sucesso: retorna o usuário atualizado com `isActive` invertido.
+- Resultado:
+  - Se usuário não existir: erro de não encontrado.
+  - Se conta alvo for `ADMIN` e estiver ativa: erro de regra de negócio (proibido desativar).
+  - Se conta alvo estiver ativa e for `USER`: marca `isActive = false` e atualiza `updatedAt`.
+  - Se conta alvo estiver desativada: marca `isActive = true` e atualiza `updatedAt`.
+
 ## Authorization and Access Rules
 
 - Regras por perfil continuam controladas por `RolesGuard` e decorator `@Authenticated(...)`.

@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Put, Body, Param, Req, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiBody, ApiOkResponse, ApiParam } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import {
@@ -31,6 +31,11 @@ import {
   DeactivateUserUseCase,
   type DeactivateUserInputDTO,
 } from '../../application/use-cases/deactivate-user.use-case';
+import {
+  ToggleUserActiveDTO,
+  ToggleUserActiveUseCase,
+  type ToggleUserActiveInputDTO,
+} from '../../application/use-cases/toggle-user-active.use-case';
 import { UserEntity } from '../../domain/user.entity';
 import { Authenticated } from '../../../../common/http/access.decorator';
 import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
@@ -46,6 +51,8 @@ export class UserController {
     @Inject(ChangeUserPasswordUseCase)
     private readonly changePasswordUseCase: ChangeUserPasswordUseCase,
     @Inject(DeactivateUserUseCase) private readonly deactivateUseCase: DeactivateUserUseCase,
+    @Inject(ToggleUserActiveUseCase)
+    private readonly toggleUserActiveUseCase: ToggleUserActiveUseCase,
   ) {}
 
   @Get()
@@ -79,6 +86,18 @@ export class UserController {
   @Authenticated('ADMIN')
   async activate(@Param(new ZodValidationPipe(ActivateUserDTO)) params: ActivateUserInputDTO) {
     const entity = await this.activateUseCase.execute(params);
+    return this.toJSON(entity);
+  }
+
+  @Post(':uuid/toggle-active')
+  @Authenticated('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  @ApiParam({ name: 'uuid', type: String, required: true })
+  @ApiOkResponse({ description: 'User active status toggled' })
+  async toggleActive(
+    @Param(new ZodValidationPipe(ToggleUserActiveDTO)) params: ToggleUserActiveInputDTO,
+  ) {
+    const entity = await this.toggleUserActiveUseCase.execute(params);
     return this.toJSON(entity);
   }
 
