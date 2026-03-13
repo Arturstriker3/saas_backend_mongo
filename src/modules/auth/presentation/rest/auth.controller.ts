@@ -147,8 +147,10 @@ export class AuthController {
         name: { type: 'string' },
         email: { type: 'string', format: 'email' },
         password: { type: 'string' },
+        language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
+        birthDate: { type: 'string', format: 'date' },
       },
-      required: ['name', 'email', 'password'],
+      required: ['name', 'email', 'password', 'birthDate'],
     },
     examples: {
       sample: {
@@ -157,6 +159,8 @@ export class AuthController {
           name: 'John Doe',
           email: 'john.doe@example.com',
           password: 'password123',
+          language: 'portuguese',
+          birthDate: '1995-06-15',
         },
       },
     },

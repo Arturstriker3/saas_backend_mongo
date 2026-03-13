@@ -141,13 +141,14 @@ describe('RequestPasswordResetUseCase', () => {
     expect(saved.expiresAt.getTime() - saved.createdAt.getTime()).toBe(1800 * 1000);
     const published = deps.events.publish.calls[0]?.[0] as {
       name: string;
-      payload: { email: string; token: string };
+      payload: { email: string; token: string; language: string };
       occurredAt: Date;
     };
     expect(published.name).toBe('PasswordResetRequested');
     expect(published.payload).toEqual({
       email: user.email,
       token: saved.token,
+      language: user.language,
     });
     expect(published.occurredAt).toBeInstanceOf(Date);
   });

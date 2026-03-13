@@ -102,6 +102,8 @@ describe('RegisterUserUseCase', () => {
       name: 'John Doe',
       email: 'John.Doe@Example.com',
       password: 'password123',
+      language: 'spanish' as const,
+      birthDate: new Date('1990-01-10T00:00:00.000Z'),
     };
     const now = new Date('2025-01-01T10:00:00.000Z');
     const entity = {
@@ -110,8 +112,8 @@ describe('RegisterUserUseCase', () => {
       email: input.email,
       passwordHash: 'hashed',
       role: 'USER',
-      language: 'portuguese',
-      birthDate: null,
+      language: input.language,
+      birthDate: input.birthDate,
       createdAt: now,
       updatedAt: now,
       isActive: true,
@@ -131,14 +133,14 @@ describe('RegisterUserUseCase', () => {
           email: input.email,
           passwordHash: 'hashed',
           role: 'USER',
-          language: 'portuguese',
-          birthDate: null,
+          language: input.language,
+          birthDate: input.birthDate,
         },
       ],
     ]);
     const published = deps.events.publish.calls[0]?.[0] as {
       name: string;
-      payload: { userId: string; email: string; name: string };
+      payload: { userId: string; email: string; name: string; language: string };
       occurredAt: Date;
     };
     expect(published.name).toBe('UserRegistered');
@@ -146,6 +148,7 @@ describe('RegisterUserUseCase', () => {
       userId: entity.uuid,
       email: entity.email,
       name: entity.name,
+      language: entity.language,
     });
     expect(published.occurredAt).toBeInstanceOf(Date);
     expect(result).toEqual({
@@ -168,6 +171,8 @@ describe('RegisterUserUseCase', () => {
       name: 'John Doe',
       email: 'john.doe@example.com',
       password: 'password123',
+      language: 'portuguese' as const,
+      birthDate: new Date('1995-01-01T00:00:00.000Z'),
     };
     deps.users.existsByEmail.setResolvedValue(true);
 
@@ -189,6 +194,7 @@ describe('RegisterUserUseCase', () => {
       name: 'John Doe',
       email: 'john.doe@example.com',
       password: '123456',
+      birthDate: '1995-01-01',
     };
 
     let error: unknown;
@@ -201,5 +207,26 @@ describe('RegisterUserUseCase', () => {
     expect(error).toBeInstanceOf(BadRequestException);
     const response = (error as BadRequestException).getResponse() as { message: string[] };
     expect(response.message[0].startsWith('password:')).toBe(true);
+  });
+
+  it('throws validation error when age is below 16 on zod pipe', () => {
+    const pipe = new ZodValidationPipe(RegisterUserDTO);
+    const input = {
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      password: 'password123',
+      birthDate: new Date().toISOString(),
+    };
+
+    let error: unknown;
+    try {
+      pipe.transform(input, { type: 'body' });
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    const response = (error as BadRequestException).getResponse() as { message: string[] };
+    expect(response.message[0]).toContain('birthDate:');
   });
 });

@@ -60,6 +60,8 @@ Example:
 - Infrastructure provides RabbitMQ implementations and consumers under src/common.
 - Email consumers live outside the domain and apply feature toggles via env.
 - The design supports running API and workers as separate processes.
+- Email events carry `language` in the payload to avoid extra lookup in the worker.
+- Email template selection by language happens in the `EmailService`.
 
 ## Metrics & Observability
 

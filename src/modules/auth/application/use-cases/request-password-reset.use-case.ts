@@ -33,7 +33,11 @@ export class RequestPasswordResetUseCase {
     });
     const event: PasswordResetRequestedEvent = {
       name: 'PasswordResetRequested',
-      payload: { email: user.email, token },
+      payload: {
+        email: user.email,
+        token,
+        language: user.language,
+      },
       occurredAt: new Date(),
     };
     await this.events.publish(event);

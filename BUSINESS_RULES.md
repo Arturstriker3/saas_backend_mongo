@@ -50,6 +50,22 @@ Este documento é a fonte de verdade para regras de negócio e regras funcionais
 - Refresh token só gera novo access token quando usuário existe e está autorizado pelas regras de status.
 - Se usuário do refresh token estiver desativado e for `USER`, a renovação deve falhar.
 
+## Registration and User Data Rules
+
+- Campos obrigatórios no cadastro público (`POST /auth/register`): `name`, `email`, `password`, `birthDate`.
+- `birthDate` deve representar idade mínima de 16 anos.
+- `language` é opcional no cadastro público.
+- Quando `language` não for enviada, o sistema deve aplicar default `english`.
+- No cadastro por admin (`POST /users`), `birthDate` também é obrigatório e segue a mesma regra de idade mínima de 16 anos.
+- No cadastro por admin, `language` é opcional com default `english`.
+
+## Email Language Rules
+
+- Eventos de email devem carregar `language` no payload.
+- Worker de email não deve buscar idioma do usuário no banco para renderizar template.
+- Templates de email devem existir por idioma suportado (`portuguese`, `english`, `spanish`).
+- Se `language` vier ausente por compatibilidade, o fallback operacional esperado é `english`.
+
 ## Maintenance Rules
 
 - Toda alteração de regra de negócio deve atualizar este documento.

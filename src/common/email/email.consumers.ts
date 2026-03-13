@@ -21,18 +21,26 @@ export class EmailConsumers implements OnModuleInit, OnModuleDestroy {
     await this.setupConsumer(channel, 'email.welcome', async (event) => {
       if (event.name !== 'UserRegistered') return;
       if (env.EMAIL_WELCOME_ENABLED !== 'true') return;
-      await this.email.sendWelcome(event.payload.email, event.payload.name);
+      await this.email.sendWelcome(event.payload.email, event.payload.name, event.payload.language);
     });
 
     await this.setupConsumer(channel, 'email.password_reset', async (event) => {
       if (event.name !== 'PasswordResetRequested') return;
-      await this.email.sendPasswordReset(event.payload.email, event.payload.token);
+      await this.email.sendPasswordReset(
+        event.payload.email,
+        event.payload.token,
+        event.payload.language,
+      );
     });
 
     await this.setupConsumer(channel, 'email.order_confirmation', async (event) => {
       if (event.name !== 'OrderConfirmed') return;
       if (env.EMAIL_ORDER_CONFIRMATION_ENABLED !== 'true') return;
-      await this.email.sendOrderConfirmation(event.payload.email, event.payload.orderId);
+      await this.email.sendOrderConfirmation(
+        event.payload.email,
+        event.payload.orderId,
+        event.payload.language,
+      );
     });
 
     this.channel = channel;

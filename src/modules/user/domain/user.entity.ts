@@ -12,7 +12,7 @@ export const USER_CONSTANTS = {
   PASSWORD_MIN_LENGTH: 8,
   ROLE_DEFAULT: 'USER',
   IS_ACTIVE_DEFAULT: true,
-  LANGUAGE_DEFAULT: 'portuguese' as UserLanguage,
+  LANGUAGE_DEFAULT: 'english' as UserLanguage,
 };
 
 export type UserEntity = {

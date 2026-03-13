@@ -73,9 +73,22 @@ export class UserController {
         password: { type: 'string' },
         role: { type: 'string' },
         language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
-        birthDate: { type: 'string', format: 'date-time', nullable: true },
+        birthDate: { type: 'string', format: 'date' },
       },
-      required: ['name', 'email', 'password', 'role'],
+      required: ['name', 'email', 'password', 'role', 'birthDate'],
+    },
+    examples: {
+      sample: {
+        summary: 'Create user example',
+        value: {
+          name: 'John Doe',
+          email: 'john.doe@example.com',
+          password: 'password123',
+          role: 'USER',
+          language: 'portuguese',
+          birthDate: '1995-06-15',
+        },
+      },
     },
   })
   async create(@Body(new ZodValidationPipe(CreateUserDTO)) body: CreateUserInputDTO) {

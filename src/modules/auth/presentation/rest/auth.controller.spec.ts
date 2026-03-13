@@ -137,6 +137,8 @@ describe('AuthController', () => {
       name: 'John Doe',
       email: 'john.doe@example.com',
       password: 'password123',
+      language: 'english',
+      birthDate: new Date('1995-06-15T00:00:00.000Z'),
     };
     const now = new Date('2025-01-01T10:00:00.000Z');
     const output: RegisterUserOutputDTO = {
@@ -147,8 +149,8 @@ describe('AuthController', () => {
       updatedAt: now,
       isActive: true,
       role: 'USER',
-      language: 'portuguese',
-      birthDate: null,
+      language: 'english',
+      birthDate: input.birthDate,
     };
     mocks.registerUseCase.execute.setResolvedValue(output);
 
