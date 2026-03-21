@@ -1,9 +1,17 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 import { RoleEnum } from '../../../role/domain/role.types';
 import { UserRepository } from '../../domain/user.repository.interface';
 
-export const ToggleUserActiveDTO = z.object({ uuid: z.string().min(1) });
+export class ToggleUserActiveParamsDTO {
+  static schema = z.object({ uuid: z.string().min(1) });
+
+  @ApiProperty({ example: 'f9f7f48e-1491-4de0-87e7-e3fd615f8026' })
+  uuid!: string;
+}
+
+export const ToggleUserActiveDTO = ToggleUserActiveParamsDTO.schema;
 export type ToggleUserActiveInputDTO = z.infer<typeof ToggleUserActiveDTO>;
 
 export class ToggleUserActiveUseCase {

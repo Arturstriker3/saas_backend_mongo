@@ -1,17 +1,29 @@
 import { z } from 'zod';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   PasswordResetRepository,
   PasswordResetRecord,
 } from '../../domain/password-reset.repository.interface';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { PasswordHasher } from '../../domain/password-hasher.interface';
-import { UserEntity, USER_CONSTANTS } from '../../../user/domain/user.entity';
+import { USER_CONSTANTS } from '../../../user/domain/user.entity';
+import type { UserEntity } from '../../../user/domain/user.entity';
 
-export const ConfirmPasswordResetDTO = z.object({
-  token: z.string().min(1),
-  newPassword: z.string().min(USER_CONSTANTS.PASSWORD_MIN_LENGTH),
-});
+export class ConfirmPasswordResetRequestDTO {
+  static schema = z.object({
+    token: z.string().min(1),
+    newPassword: z.string().min(USER_CONSTANTS.PASSWORD_MIN_LENGTH),
+  });
+
+  @ApiProperty({ example: 'reset-token-hex-string' })
+  token!: string;
+
+  @ApiProperty({ example: 'newStrongPassword123' })
+  newPassword!: string;
+}
+
+export const ConfirmPasswordResetDTO = ConfirmPasswordResetRequestDTO.schema;
 export type ConfirmPasswordResetInputDTO = z.infer<typeof ConfirmPasswordResetDTO>;
 
 export class ConfirmPasswordResetUseCase {

@@ -1,14 +1,10 @@
 import { z } from 'zod';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRepository } from '../../domain/user.repository.interface';
-import {
-  UserEntity,
-  USER_CONSTANTS,
-  USER_LANGUAGES,
-} from '../../domain/user.entity';
+import { USER_CONSTANTS, USER_LANGUAGES } from '../../domain/user.entity';
+import type { UserEntity } from '../../domain/user.entity';
 import { PasswordHasher } from '../../../auth/domain/password-hasher.interface';
 import { ROLES } from '../../../role/domain/role.types';
-
-const USER_MINIMUM_AGE_YEARS = 16;
 
 function isAtLeastMinimumAge(birthDate: Date, minimumAgeYears: number): boolean {
   const today = new Date();
@@ -20,19 +16,41 @@ function isAtLeastMinimumAge(birthDate: Date, minimumAgeYears: number): boolean 
   return birthDate <= minimumBirthDate;
 }
 
-export const CreateUserDTO = z.object({
-  name: z.string().min(USER_CONSTANTS.NAME_MIN_LENGTH).max(USER_CONSTANTS.NAME_MAX_LENGTH),
-  email: z.string().email().max(USER_CONSTANTS.EMAIL_MAX_LENGTH),
-  password: z.string().min(USER_CONSTANTS.PASSWORD_MIN_LENGTH),
-  role: z.enum(ROLES),
-  language: z.enum(USER_LANGUAGES).optional().default(USER_CONSTANTS.LANGUAGE_DEFAULT),
-  birthDate: z.coerce
-    .date()
-    .refine(
-      (birthDate) => isAtLeastMinimumAge(birthDate, USER_MINIMUM_AGE_YEARS),
-      `birthDate: must be at least ${USER_MINIMUM_AGE_YEARS} years old`,
-    ),
-});
+export class CreateUserRequestDTO {
+  static schema = z.object({
+    name: z.string().min(USER_CONSTANTS.NAME_MIN_LENGTH).max(USER_CONSTANTS.NAME_MAX_LENGTH),
+    email: z.string().email().max(USER_CONSTANTS.EMAIL_MAX_LENGTH),
+    password: z.string().min(USER_CONSTANTS.PASSWORD_MIN_LENGTH),
+    role: z.enum(ROLES),
+    language: z.enum(USER_LANGUAGES).optional().default(USER_CONSTANTS.LANGUAGE_DEFAULT),
+    birthDate: z.coerce
+      .date()
+      .refine(
+        (birthDate) => isAtLeastMinimumAge(birthDate, USER_CONSTANTS.MINIMUM_AGE_YEARS),
+        `birthDate: must be at least ${USER_CONSTANTS.MINIMUM_AGE_YEARS} years old`,
+      ),
+  });
+
+  @ApiProperty({ example: 'John Doe' })
+  name!: string;
+
+  @ApiProperty({ example: 'john.doe@example.com' })
+  email!: string;
+
+  @ApiProperty({ example: 'password123' })
+  password!: string;
+
+  @ApiProperty({ enum: ROLES, example: 'USER' })
+  role!: string;
+
+  @ApiPropertyOptional({ enum: USER_LANGUAGES, example: 'english' })
+  language?: (typeof USER_LANGUAGES)[number];
+
+  @ApiProperty({ example: '1995-06-15', format: 'date' })
+  birthDate!: string;
+}
+
+export const CreateUserDTO = CreateUserRequestDTO.schema;
 
 export type CreateUserInputDTO = z.infer<typeof CreateUserDTO>;
 

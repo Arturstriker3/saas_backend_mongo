@@ -12,23 +12,39 @@ import {
   ApiNoContentResponse,
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
-import { AuthenticateUserUseCase } from '../../application/use-cases/authenticate-user.use-case';
-import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
-import { LogoutBodyDTO, LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import {
+  AuthenticateUserUseCase,
+  LoginResponseDTO,
+  LoginRequestDTO,
+  LoginDTO,
+} from '../../application/use-cases/authenticate-user.use-case';
+import {
+  RefreshTokenUseCase,
+  RefreshTokenRequestDTO,
+  RefreshTokenResponseDTO,
+  RefreshDTO,
+} from '../../application/use-cases/refresh-token.use-case';
+import {
+  LogoutBodyDTO,
+  LogoutRequestDTO,
+  LogoutUseCase,
+} from '../../application/use-cases/logout.use-case';
+import {
+  RequestPasswordResetRequestDTO,
   RequestPasswordResetDTO,
   RequestPasswordResetUseCase,
 } from '../../application/use-cases/request-password-reset.use-case';
 import {
+  ConfirmPasswordResetRequestDTO,
   ConfirmPasswordResetDTO,
   ConfirmPasswordResetUseCase,
 } from '../../application/use-cases/confirm-password-reset.use-case';
 import {
+  RegisterUserRequestDTO,
+  RegisterUserResponseDTO,
   RegisterUserDTO,
   RegisterUserUseCase,
 } from '../../application/use-cases/register-user.use-case';
-import { LoginDTO } from '../../application/use-cases/authenticate-user.use-case';
-import { RefreshDTO } from '../../application/use-cases/refresh-token.use-case';
 import type {
   AuthenticateUserOutputDTO,
   LoginInputDTO,
@@ -45,7 +61,7 @@ import type {
   RegisterUserInputDTO,
 } from '../../application/use-cases/register-user.use-case';
 import { Public, Authenticated } from '../../../../common/http/access.decorator';
-import { GetMeUseCase } from '../../application/use-cases/get-me.use-case';
+import { GetMeResponseDTO, GetMeUseCase } from '../../application/use-cases/get-me.use-case';
 import type { GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
 import { loadEnv } from '../../../../common/config/env';
 import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
@@ -73,32 +89,8 @@ export class AuthController {
 
   @Post('login')
   @Public()
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', format: 'email' },
-        password: { type: 'string' },
-      },
-      required: ['email', 'password'],
-    },
-    examples: {
-      sample: {
-        summary: 'Login example (same credentials as register)',
-        value: { email: 'john.doe@example.com', password: 'password123' },
-      },
-    },
-  })
-  @ApiCreatedResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        accessToken: { type: 'string' },
-        refreshToken: { type: 'string' },
-      },
-      required: ['accessToken', 'refreshToken'],
-    },
-  })
+  @ApiBody({ type: LoginRequestDTO })
+  @ApiCreatedResponse({ type: LoginResponseDTO })
   @ApiUnauthorizedResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
@@ -114,20 +106,7 @@ export class AuthController {
 
   @Get('me')
   @Authenticated()
-  @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-        createdAt: { type: 'string', format: 'date-time' },
-        role: { type: 'string' },
-        language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
-        birthDate: { type: 'string', format: 'date-time', nullable: true },
-      },
-      required: ['name', 'email', 'createdAt', 'role', 'language', 'birthDate'],
-    },
-  })
+  @ApiOkResponse({ type: GetMeResponseDTO })
   @ApiUnauthorizedResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
@@ -140,58 +119,8 @@ export class AuthController {
 
   @Post('register')
   @Public()
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-        password: { type: 'string' },
-        language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
-        birthDate: { type: 'string', format: 'date' },
-      },
-      required: ['name', 'email', 'password', 'birthDate'],
-    },
-    examples: {
-      sample: {
-        summary: 'Register example (same credentials as login)',
-        value: {
-          name: 'John Doe',
-          email: 'john.doe@example.com',
-          password: 'password123',
-          language: 'portuguese',
-          birthDate: '1995-06-15',
-        },
-      },
-    },
-  })
-  @ApiCreatedResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        uuid: { type: 'string' },
-        name: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-        isActive: { type: 'boolean' },
-        role: { type: 'string' },
-        language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
-        birthDate: { type: 'string', format: 'date-time', nullable: true },
-      },
-      required: [
-        'uuid',
-        'name',
-        'email',
-        'createdAt',
-        'updatedAt',
-        'isActive',
-        'role',
-        'language',
-        'birthDate',
-      ],
-    },
-  })
+  @ApiBody({ type: RegisterUserRequestDTO })
+  @ApiCreatedResponse({ type: RegisterUserResponseDTO })
   @ApiConflictResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
@@ -206,29 +135,8 @@ export class AuthController {
 
   @Post('refresh-token')
   @Public()
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { refreshToken: { type: 'string' } },
-      required: ['refreshToken'],
-    },
-    examples: {
-      sample: {
-        summary: 'Refresh example',
-        value: { refreshToken: 'b3b9b1e9e9c64f8892e4f1a0b0d2b8f7' },
-      },
-    },
-  })
-  @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        accessToken: { type: 'string' },
-        refreshToken: { type: 'string' },
-      },
-      required: ['accessToken', 'refreshToken'],
-    },
-  })
+  @ApiBody({ type: RefreshTokenRequestDTO })
+  @ApiOkResponse({ type: RefreshTokenResponseDTO })
   @ApiUnauthorizedResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
@@ -243,19 +151,7 @@ export class AuthController {
 
   @Post('logout')
   @Authenticated()
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { refreshToken: { type: 'string' } },
-      required: ['refreshToken'],
-    },
-    examples: {
-      sample: {
-        summary: 'Logout example',
-        value: { refreshToken: 'b3b9b1e9e9c64f8892e4f1a0b0d2b8f7' },
-      },
-    },
-  })
+  @ApiBody({ type: LogoutRequestDTO })
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
@@ -279,16 +175,7 @@ export class AuthController {
       ttl: parseInt(env.RATE_LIMIT_RESET_TTL, 10),
     },
   })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { email: { type: 'string', format: 'email' } },
-      required: ['email'],
-    },
-    examples: {
-      sample: { summary: 'Request reset', value: { email: 'user@example.com' } },
-    },
-  })
+  @ApiBody({ type: RequestPasswordResetRequestDTO })
   @ApiNoContentResponse()
   @ApiBadRequestResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
@@ -302,22 +189,7 @@ export class AuthController {
 
   @Post('confirm-password-reset')
   @Public()
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        token: { type: 'string' },
-        newPassword: { type: 'string' },
-      },
-      required: ['token', 'newPassword'],
-    },
-    examples: {
-      sample: {
-        summary: 'Confirm reset',
-        value: { token: 'reset-token-hex-string', newPassword: 'newStrongPassword123' },
-      },
-    },
-  })
+  @ApiBody({ type: ConfirmPasswordResetRequestDTO })
   @ApiNoContentResponse()
   @ApiBadRequestResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { PasswordResetRepository } from '../../domain/password-reset.repository.interface';
 import { loadEnv } from '../../../../common/config/env';
@@ -7,7 +8,14 @@ import { v7 as uuidv7 } from 'uuid';
 import { EventBus } from '../../../../common/messaging/event-bus.interface';
 import { PasswordResetRequestedEvent } from '../../../../common/messaging/events';
 
-export const RequestPasswordResetDTO = z.object({ email: z.string().email() });
+export class RequestPasswordResetRequestDTO {
+  static schema = z.object({ email: z.string().email() });
+
+  @ApiProperty({ example: 'user@example.com' })
+  email!: string;
+}
+
+export const RequestPasswordResetDTO = RequestPasswordResetRequestDTO.schema;
 export type RequestPasswordResetInputDTO = z.infer<typeof RequestPasswordResetDTO>;
 
 export class RequestPasswordResetUseCase {

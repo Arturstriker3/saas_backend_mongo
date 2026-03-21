@@ -1,8 +1,23 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 import { UserRepository } from '../../domain/user.repository.interface';
 
-export const ChangeUserNameParamDTO = z.object({ uuid: z.string().min(1) });
-export const ChangeUserNameBodyDTO = z.object({ name: z.string().min(3) });
+export class ChangeUserNameParamsDTO {
+  static schema = z.object({ uuid: z.string().min(1) });
+
+  @ApiProperty({ example: 'f9f7f48e-1491-4de0-87e7-e3fd615f8026' })
+  uuid!: string;
+}
+
+export class ChangeUserNameRequestDTO {
+  static schema = z.object({ name: z.string().min(3) });
+
+  @ApiProperty({ example: 'John Smith' })
+  name!: string;
+}
+
+export const ChangeUserNameParamDTO = ChangeUserNameParamsDTO.schema;
+export const ChangeUserNameBodyDTO = ChangeUserNameRequestDTO.schema;
 export const ChangeUserNameDTO = ChangeUserNameParamDTO.merge(ChangeUserNameBodyDTO);
 export type ChangeUserNameParamInputDTO = z.infer<typeof ChangeUserNameParamDTO>;
 export type ChangeUserNameBodyInputDTO = z.infer<typeof ChangeUserNameBodyDTO>;

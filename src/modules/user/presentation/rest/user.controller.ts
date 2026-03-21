@@ -1,8 +1,16 @@
 import { Controller, Get, Post, Put, Body, Param, Req, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiBody, ApiOkResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBody,
+  ApiOkResponse,
+  ApiParam,
+  ApiProperty,
+  ApiCreatedResponse,
+} from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import {
+  CreateUserRequestDTO,
   CreateUserUseCase,
   CreateUserDTO,
   type CreateUserInputDTO,
@@ -14,6 +22,7 @@ import {
   type ActivateUserInputDTO,
 } from '../../application/use-cases/activate-user.use-case';
 import {
+  ChangeUserNameRequestDTO,
   ChangeUserNameBodyDTO,
   ChangeUserNameParamDTO,
   ChangeUserNameUseCase,
@@ -21,6 +30,7 @@ import {
   type ChangeUserNameParamInputDTO,
 } from '../../application/use-cases/change-user-name.use-case';
 import {
+  ChangeUserPasswordRequestDTO,
   ChangeUserPasswordBodyDTO,
   ChangeUserPasswordParamDTO,
   ChangeUserPasswordUseCase,
@@ -36,9 +46,38 @@ import {
   ToggleUserActiveUseCase,
   type ToggleUserActiveInputDTO,
 } from '../../application/use-cases/toggle-user-active.use-case';
-import { UserEntity } from '../../domain/user.entity';
+import type { UserEntity } from '../../domain/user.entity';
 import { Authenticated } from '../../../../common/http/access.decorator';
 import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
+
+class UserResponseDTO {
+  @ApiProperty({ example: 'f9f7f48e-1491-4de0-87e7-e3fd615f8026' })
+  uuid!: string;
+
+  @ApiProperty({ example: 'John Doe' })
+  name!: string;
+
+  @ApiProperty({ example: 'john.doe@example.com' })
+  email!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: Date;
+
+  @ApiProperty({ format: 'date-time' })
+  updatedAt!: Date;
+
+  @ApiProperty({ example: true })
+  isActive!: boolean;
+
+  @ApiProperty({ example: 'USER' })
+  role!: string;
+
+  @ApiProperty({ enum: ['portuguese', 'english', 'spanish'], example: 'english' })
+  language!: string;
+
+  @ApiProperty({ format: 'date-time', nullable: true })
+  birthDate!: Date | null;
+}
 
 @ApiTags('Users')
 @Controller('users')
@@ -57,6 +96,7 @@ export class UserController {
 
   @Get()
   @Authenticated('ADMIN')
+  @ApiOkResponse({ type: UserResponseDTO, isArray: true })
   async list() {
     const entities = await this.listUseCase.execute();
     return entities.map(this.toJSON);
@@ -64,33 +104,8 @@ export class UserController {
 
   @Post()
   @Authenticated('ADMIN')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-        password: { type: 'string' },
-        role: { type: 'string' },
-        language: { type: 'string', enum: ['portuguese', 'english', 'spanish'] },
-        birthDate: { type: 'string', format: 'date' },
-      },
-      required: ['name', 'email', 'password', 'role', 'birthDate'],
-    },
-    examples: {
-      sample: {
-        summary: 'Create user example',
-        value: {
-          name: 'John Doe',
-          email: 'john.doe@example.com',
-          password: 'password123',
-          role: 'USER',
-          language: 'portuguese',
-          birthDate: '1995-06-15',
-        },
-      },
-    },
-  })
+  @ApiBody({ type: CreateUserRequestDTO })
+  @ApiCreatedResponse({ type: UserResponseDTO })
   async create(@Body(new ZodValidationPipe(CreateUserDTO)) body: CreateUserInputDTO) {
     const entity = await this.createUseCase.execute(body);
     return this.toJSON(entity);
@@ -98,6 +113,7 @@ export class UserController {
 
   @Post(':uuid/activate')
   @Authenticated('ADMIN')
+  @ApiCreatedResponse({ type: UserResponseDTO })
   async activate(@Param(new ZodValidationPipe(ActivateUserDTO)) params: ActivateUserInputDTO) {
     const entity = await this.activateUseCase.execute(params);
     return this.toJSON(entity);
@@ -107,7 +123,7 @@ export class UserController {
   @Authenticated('ADMIN')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'uuid', type: String, required: true })
-  @ApiOkResponse({ description: 'User active status toggled' })
+  @ApiOkResponse({ type: UserResponseDTO, description: 'User active status toggled' })
   async toggleActive(
     @Param(new ZodValidationPipe(ToggleUserActiveDTO)) params: ToggleUserActiveInputDTO,
   ) {
@@ -117,13 +133,8 @@ export class UserController {
 
   @Put(':uuid/name')
   @Authenticated('ADMIN')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { name: { type: 'string' } },
-      required: ['name'],
-    },
-  })
+  @ApiBody({ type: ChangeUserNameRequestDTO })
+  @ApiOkResponse({ type: UserResponseDTO })
   async changeName(
     @Param(new ZodValidationPipe(ChangeUserNameParamDTO)) params: ChangeUserNameParamInputDTO,
     @Body(new ZodValidationPipe(ChangeUserNameBodyDTO)) body: ChangeUserNameBodyInputDTO,
@@ -134,13 +145,8 @@ export class UserController {
 
   @Put(':uuid/password')
   @Authenticated('ADMIN')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { newPassword: { type: 'string' } },
-      required: ['newPassword'],
-    },
-  })
+  @ApiBody({ type: ChangeUserPasswordRequestDTO })
+  @ApiOkResponse({ type: UserResponseDTO })
   async changePassword(
     @Param(new ZodValidationPipe(ChangeUserPasswordParamDTO))
     params: ChangeUserPasswordParamInputDTO,
@@ -157,6 +163,7 @@ export class UserController {
   @Post('deactivate')
   @Authenticated()
   @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: UserResponseDTO })
   async deactivate(@Req() req: FastifyRequest & { user: { userId: string } }) {
     const params: DeactivateUserInputDTO = { userId: req.user.userId };
     const entity = await this.deactivateUseCase.execute(params);

@@ -1,4 +1,4 @@
-import { UserEntity } from './user.entity';
+import type { UserEntity } from './user.entity';
 
 export interface UserRepository {
   create(props: {

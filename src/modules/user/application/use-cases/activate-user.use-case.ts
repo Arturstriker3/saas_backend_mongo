@@ -1,7 +1,15 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 import { UserRepository } from '../../domain/user.repository.interface';
 
-export const ActivateUserDTO = z.object({ uuid: z.string().min(1) });
+export class ActivateUserParamsDTO {
+  static schema = z.object({ uuid: z.string().min(1) });
+
+  @ApiProperty({ example: 'f9f7f48e-1491-4de0-87e7-e3fd615f8026' })
+  uuid!: string;
+}
+
+export const ActivateUserDTO = ActivateUserParamsDTO.schema;
 export type ActivateUserInputDTO = z.infer<typeof ActivateUserDTO>;
 
 export class ActivateUserUseCase {

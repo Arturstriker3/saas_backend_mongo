@@ -1,5 +1,5 @@
 import { UserRepository } from '../../domain/user.repository.interface';
-import { UserEntity } from '../../domain/user.entity';
+import type { UserEntity } from '../../domain/user.entity';
 
 export class ListUsersUseCase {
   private readonly repo: UserRepository;

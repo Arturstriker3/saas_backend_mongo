@@ -119,6 +119,12 @@ Example:
 - Repository implementations: <name>.repository.<provider>.ts
 - Use cases: <action>-<entity>.use-case.ts
 - DTO schemas: define Zod schemas in use-case files and consume them in presentation pipes
+- Endpoint input DTO classes: <EndpointName>RequestDTO
+- Endpoint output DTO classes: <EndpointName>ResponseDTO
+- Route params DTO classes: <EndpointName>ParamsDTO
+- Inferred input types: <EndpointName>InputDTO
+- Use-case output types: <EndpointName>OutputDTO
+- Zod schema constants: <EndpointName>DTO
 
 ## Validation Flow (HTTP)
 
