@@ -22,6 +22,8 @@ import { RequestPasswordResetUseCase } from './application/use-cases/request-pas
 import { ConfirmPasswordResetUseCase } from './application/use-cases/confirm-password-reset.use-case';
 import { RegisterUserUseCase } from './application/use-cases/register-user.use-case';
 import { GetMeUseCase } from './application/use-cases/get-me.use-case';
+import { StartGoogleOAuthUseCase } from './application/use-cases/start-google-oauth.use-case';
+import { CompleteGoogleOAuthUseCase } from './application/use-cases/complete-google-oauth.use-case';
 import { MONGO_CONNECTION } from '../../common/database/mongo.connection';
 import type { MongooseConnection } from '../../common/database/mongo.connection';
 import {
@@ -34,6 +36,11 @@ import {
   PASSWORD_RESET_MODEL,
   makePasswordResetSchema,
 } from './infrastructure/password-reset.repository.mongo';
+import {
+  OAUTH_GOOGLE_CLIENT,
+  OAuthProviderClient,
+} from './domain/oauth-provider.interface';
+import { GoogleOAuthClient } from './infrastructure/google-oauth.client';
 
 @Module({
   imports: [
@@ -69,6 +76,11 @@ import {
     },
     RefreshTokenRepositoryMongo,
     PasswordResetRepositoryMongo,
+    GoogleOAuthClient,
+    {
+      provide: OAUTH_GOOGLE_CLIENT,
+      useExisting: GoogleOAuthClient,
+    },
     {
       provide: AuthenticateUserUseCase,
       useFactory: (
@@ -115,6 +127,29 @@ import {
       provide: GetMeUseCase,
       useFactory: (users: UserRepository) => new GetMeUseCase(users),
       inject: [UserRepositoryMongo],
+    },
+    {
+      provide: StartGoogleOAuthUseCase,
+      useFactory: (jwt: JwtService, googleOAuthClient: OAuthProviderClient) =>
+        new StartGoogleOAuthUseCase(jwt, googleOAuthClient),
+      inject: [JwtService, OAUTH_GOOGLE_CLIENT],
+    },
+    {
+      provide: CompleteGoogleOAuthUseCase,
+      useFactory: (
+        users: UserRepository,
+        hasher: PasswordHasher,
+        tokens: RefreshTokenRepository,
+        jwt: JwtService,
+        googleOAuthClient: OAuthProviderClient,
+      ) => new CompleteGoogleOAuthUseCase(users, hasher, tokens, jwt, googleOAuthClient),
+      inject: [
+        UserRepositoryMongo,
+        PASSWORD_HASHER,
+        RefreshTokenRepositoryMongo,
+        JwtService,
+        OAUTH_GOOGLE_CLIENT,
+      ],
     },
     JwtStrategy,
   ],

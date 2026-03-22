@@ -65,6 +65,19 @@ import { GetMeResponseDTO, GetMeUseCase } from '../../application/use-cases/get-
 import type { GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
 import { loadEnv } from '../../../../common/config/env';
 import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
+import {
+  StartGoogleOAuthResponseDTO,
+  StartGoogleOAuthUseCase,
+} from '../../application/use-cases/start-google-oauth.use-case';
+import {
+  CompleteGoogleOAuthDTO,
+  CompleteGoogleOAuthRequestDTO,
+  CompleteGoogleOAuthUseCase,
+} from '../../application/use-cases/complete-google-oauth.use-case';
+import type {
+  CompleteGoogleOAuthInputDTO,
+  CompleteGoogleOAuthOutputDTO,
+} from '../../application/use-cases/complete-google-oauth.use-case';
 
 const env = loadEnv();
 
@@ -85,11 +98,39 @@ export class AuthController {
     private readonly registerUseCase: RegisterUserUseCase,
     @Inject(GetMeUseCase)
     private readonly getMeUseCase: GetMeUseCase,
+    @Inject(StartGoogleOAuthUseCase)
+    private readonly startGoogleOAuthUseCase: StartGoogleOAuthUseCase,
+    @Inject(CompleteGoogleOAuthUseCase)
+    private readonly completeGoogleOAuthUseCase: CompleteGoogleOAuthUseCase,
   ) {}
 
   @Post('login')
   @Public()
   @ApiBody({ type: LoginRequestDTO })
+  @ApiOkResponse({ type: LoginResponseDTO })
+  @ApiUnauthorizedResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @ApiBadRequestResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body(new ZodValidationPipe(LoginDTO)) body: LoginInputDTO,
+  ): Promise<AuthenticateUserOutputDTO> {
+    return this.authUseCase.execute(body);
+  }
+
+  @Get('oauth/google/start')
+  @Public()
+  @ApiOkResponse({ type: StartGoogleOAuthResponseDTO })
+  async startGoogleOAuth(): Promise<StartGoogleOAuthResponseDTO> {
+    return this.startGoogleOAuthUseCase.execute();
+  }
+
+  @Post('oauth/google/complete')
+  @Public()
+  @ApiBody({ type: CompleteGoogleOAuthRequestDTO })
   @ApiCreatedResponse({ type: LoginResponseDTO })
   @ApiUnauthorizedResponse({
     schema: { type: 'object', properties: { message: { type: 'string' } } },
@@ -98,10 +139,10 @@ export class AuthController {
     schema: { type: 'object', properties: { message: { type: 'string' } } },
   })
   @HttpCode(HttpStatus.CREATED)
-  async login(
-    @Body(new ZodValidationPipe(LoginDTO)) body: LoginInputDTO,
-  ): Promise<AuthenticateUserOutputDTO> {
-    return this.authUseCase.execute(body);
+  async completeGoogleOAuth(
+    @Body(new ZodValidationPipe(CompleteGoogleOAuthDTO)) body: CompleteGoogleOAuthInputDTO,
+  ): Promise<CompleteGoogleOAuthOutputDTO> {
+    return this.completeGoogleOAuthUseCase.execute(body);
   }
 
   @Get('me')

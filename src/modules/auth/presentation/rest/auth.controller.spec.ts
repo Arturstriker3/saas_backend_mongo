@@ -28,6 +28,15 @@ import type {
   RegisterUserOutputDTO,
 } from '../../application/use-cases/register-user.use-case';
 import type { GetMeUseCase, GetMeOutputDTO } from '../../application/use-cases/get-me.use-case';
+import type {
+  StartGoogleOAuthUseCase,
+  StartGoogleOAuthOutputDTO,
+} from '../../application/use-cases/start-google-oauth.use-case';
+import type {
+  CompleteGoogleOAuthUseCase,
+  CompleteGoogleOAuthInputDTO,
+  CompleteGoogleOAuthOutputDTO,
+} from '../../application/use-cases/complete-google-oauth.use-case';
 
 type MockFunction<Args extends unknown[] = unknown[], Return = unknown> = ((
   ...args: Args
@@ -49,6 +58,13 @@ type Mocks = {
   confirmResetUseCase: UseCaseMock<ConfirmPasswordResetInputDTO, void>;
   registerUseCase: UseCaseMock<RegisterUserInputDTO, RegisterUserOutputDTO>;
   getMeUseCase: UseCaseMock<{ userId: string }, GetMeOutputDTO>;
+  startGoogleOAuthUseCase: {
+    execute: MockFunction<[], Promise<StartGoogleOAuthOutputDTO>>;
+  };
+  completeGoogleOAuthUseCase: UseCaseMock<
+    CompleteGoogleOAuthInputDTO,
+    CompleteGoogleOAuthOutputDTO
+  >;
 };
 
 function createMock<Args extends unknown[] = unknown[], Return = unknown>(): MockFunction<
@@ -92,6 +108,15 @@ function createController(): { controller: AuthController; mocks: Mocks } {
   const getMeUseCase: UseCaseMock<{ userId: string }, GetMeOutputDTO> = {
     execute: createMock(),
   };
+  const startGoogleOAuthUseCase = {
+    execute: createMock<[], Promise<StartGoogleOAuthOutputDTO>>(),
+  };
+  const completeGoogleOAuthUseCase: UseCaseMock<
+    CompleteGoogleOAuthInputDTO,
+    CompleteGoogleOAuthOutputDTO
+  > = {
+    execute: createMock(),
+  };
   const controller = new AuthController(
     authUseCase as unknown as AuthenticateUserUseCase,
     refreshUseCase as unknown as RefreshTokenUseCase,
@@ -100,6 +125,8 @@ function createController(): { controller: AuthController; mocks: Mocks } {
     confirmResetUseCase as unknown as ConfirmPasswordResetUseCase,
     registerUseCase as unknown as RegisterUserUseCase,
     getMeUseCase as unknown as GetMeUseCase,
+    startGoogleOAuthUseCase as unknown as StartGoogleOAuthUseCase,
+    completeGoogleOAuthUseCase as unknown as CompleteGoogleOAuthUseCase,
   );
   return {
     controller,
@@ -111,6 +138,8 @@ function createController(): { controller: AuthController; mocks: Mocks } {
       confirmResetUseCase,
       registerUseCase,
       getMeUseCase,
+      startGoogleOAuthUseCase,
+      completeGoogleOAuthUseCase,
     },
   };
 }
@@ -229,6 +258,37 @@ describe('AuthController', () => {
     const result = await controller.me({ user: { userId: 'user-uuid' } } as never);
 
     expect(mocks.getMeUseCase.execute.calls).toEqual([[{ userId: 'user-uuid' }]]);
+    expect(result).toEqual(output);
+  });
+
+  it('delegates google oauth start to StartGoogleOAuthUseCase', async () => {
+    const { controller, mocks } = createController();
+    const output: StartGoogleOAuthOutputDTO = {
+      authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth?state=abc',
+    };
+    mocks.startGoogleOAuthUseCase.execute.setResolvedValue(output);
+
+    const result = await controller.startGoogleOAuth();
+
+    expect(mocks.startGoogleOAuthUseCase.execute.calls).toEqual([[]]);
+    expect(result).toEqual(output);
+  });
+
+  it('delegates google oauth completion to CompleteGoogleOAuthUseCase', async () => {
+    const { controller, mocks } = createController();
+    const input: CompleteGoogleOAuthInputDTO = {
+      code: 'authorization-code',
+      state: 'signed-state',
+    };
+    const output: CompleteGoogleOAuthOutputDTO = {
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+    };
+    mocks.completeGoogleOAuthUseCase.execute.setResolvedValue(output);
+
+    const result = await controller.completeGoogleOAuth(input);
+
+    expect(mocks.completeGoogleOAuthUseCase.execute.calls).toEqual([[input]]);
     expect(result).toEqual(output);
   });
 });

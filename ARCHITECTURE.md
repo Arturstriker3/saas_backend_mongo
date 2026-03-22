@@ -125,6 +125,19 @@ Example:
 - Inferred input types: <EndpointName>InputDTO
 - Use-case output types: <EndpointName>OutputDTO
 - Zod schema constants: <EndpointName>DTO
+- OAuth provider interfaces: oauth-<provider>.interface.ts
+- OAuth provider clients: <provider>-oauth.client.ts
+- OAuth start use cases: start-<provider>-oauth.use-case.ts
+- OAuth completion use cases: complete-<provider>-oauth.use-case.ts
+
+## OAuth Flow (Google)
+
+- OAuth login is split into two endpoints in auth module:
+- `GET /auth/oauth/google/start`: returns `authorizationUrl` with signed state.
+- `POST /auth/oauth/google/complete`: receives `{ code, state }`, validates state, exchanges code with Google, resolves user, and issues JWT + refresh token.
+- OAuth success reuses the same session contract used by local login (`accessToken`, `refreshToken`).
+- Existing users are matched by email; if no user exists, a new active user is created with default role/language.
+- Required env vars: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`, `GOOGLE_OAUTH_STATE_TTL`.
 
 ## Validation Flow (HTTP)
 

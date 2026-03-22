@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { loadEnv } from './common/config/env';
+import { resolveCorsOrigin } from './common/config/cors';
 import { runSeed } from './common/database/seed/seed';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { MetricsService } from './common/metrics/metrics.service';
@@ -12,6 +13,9 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
   const env = loadEnv();
+  app.enableCors({
+    origin: resolveCorsOrigin(env.CORS_ALLOWED_ORIGINS),
+  });
   if (env.METRICS_ENABLED === 'true') {
     const metrics = app.get(MetricsService);
     const fastify = app.getHttpAdapter().getInstance();
