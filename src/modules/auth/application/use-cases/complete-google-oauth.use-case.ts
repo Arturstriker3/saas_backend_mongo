@@ -5,8 +5,11 @@ import { randomBytes } from 'crypto';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 import { loadEnv } from '../../../../common/config/env';
+import { EventBus } from '../../../../common/messaging/event-bus.interface';
+import { UserRegisteredEvent } from '../../../../common/messaging/events';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { USER_CONSTANTS } from '../../../user/domain/user.entity';
+import type { UserEntity } from '../../../user/domain/user.entity';
 import { PasswordHasher } from '../../domain/password-hasher.interface';
 import { OAuthProviderClient } from '../../domain/oauth-provider.interface';
 import { RefreshTokenRepository } from '../../domain/refresh-token.repository.interface';
@@ -44,6 +47,7 @@ export class CompleteGoogleOAuthUseCase {
     private readonly tokens: RefreshTokenRepository,
     private readonly jwt: JwtService,
     private readonly googleOAuthClient: OAuthProviderClient,
+    private readonly events: EventBus,
   ) {}
 
   async execute(input: CompleteGoogleOAuthInputDTO): Promise<CompleteGoogleOAuthOutputDTO> {
@@ -67,7 +71,11 @@ export class CompleteGoogleOAuthUseCase {
     }
 
     const existingUser = await this.users.findByEmail(profile.email);
-    const user = existingUser ?? (await this.createUserFromGoogleProfile(profile.email, profile.name));
+    let user = existingUser;
+    if (!user) {
+      user = await this.createUserFromGoogleProfile(profile.email, profile.name);
+      await this.publishUserRegisteredEvent(user);
+    }
 
     if (!user.isActive) {
       throw new UnauthorizedException('User account is deactivated');
@@ -96,7 +104,24 @@ export class CompleteGoogleOAuthUseCase {
     return localPart.trim() || 'User';
   }
 
-  private async createSessionTokens(userId: string, role: string): Promise<CompleteGoogleOAuthOutputDTO> {
+  private async publishUserRegisteredEvent(user: UserEntity): Promise<void> {
+    const event: UserRegisteredEvent = {
+      name: 'UserRegistered',
+      payload: {
+        userId: user.uuid,
+        email: user.email,
+        name: user.name,
+        language: user.language,
+      },
+      occurredAt: new Date(),
+    };
+    await this.events.publish(event);
+  }
+
+  private async createSessionTokens(
+    userId: string,
+    role: string,
+  ): Promise<CompleteGoogleOAuthOutputDTO> {
     const env = loadEnv();
     const accessToken = await this.jwt.signAsync(
       { sub: userId, role },

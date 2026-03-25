@@ -5,6 +5,7 @@ import { loadEnv } from '../../common/config/env';
 import { DatabaseModule } from '../../common/database/database.module';
 import { MessagingModule } from '../../common/messaging/messaging.module';
 import { EVENT_BUS } from '../../common/messaging/event-bus.interface';
+import type { EventBus } from '../../common/messaging/event-bus.interface';
 import { UserModule } from '../user/user.module';
 import { RoleModule } from '../role/role.module';
 import { UserRepository } from '../user/domain/user.repository.interface';
@@ -36,10 +37,7 @@ import {
   PASSWORD_RESET_MODEL,
   makePasswordResetSchema,
 } from './infrastructure/password-reset.repository.mongo';
-import {
-  OAUTH_GOOGLE_CLIENT,
-  OAuthProviderClient,
-} from './domain/oauth-provider.interface';
+import { OAUTH_GOOGLE_CLIENT, OAuthProviderClient } from './domain/oauth-provider.interface';
 import { GoogleOAuthClient } from './infrastructure/google-oauth.client';
 
 @Module({
@@ -142,13 +140,15 @@ import { GoogleOAuthClient } from './infrastructure/google-oauth.client';
         tokens: RefreshTokenRepository,
         jwt: JwtService,
         googleOAuthClient: OAuthProviderClient,
-      ) => new CompleteGoogleOAuthUseCase(users, hasher, tokens, jwt, googleOAuthClient),
+        events: EventBus,
+      ) => new CompleteGoogleOAuthUseCase(users, hasher, tokens, jwt, googleOAuthClient, events),
       inject: [
         UserRepositoryMongo,
         PASSWORD_HASHER,
         RefreshTokenRepositoryMongo,
         JwtService,
         OAUTH_GOOGLE_CLIENT,
+        EVENT_BUS,
       ],
     },
     JwtStrategy,
