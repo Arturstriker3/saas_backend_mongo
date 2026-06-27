@@ -1,23 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "commonjs",
-    "lib": ["ES2022"],
+    "target": "ES2023",
+    "module": "nodenext",
+    "lib": ["ES2023"],
+    "rootDir": "./src",
     "declaration": false,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "removeComments": false,
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "baseUrl": ".",
-    "paths": {},
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "moduleResolution": "node",
-    "types": ["bun-types", "node"],
+    "moduleResolution": "nodenext",
+    "types": ["bun"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
-  },
-  "include": ["src"]
+  }
 }
