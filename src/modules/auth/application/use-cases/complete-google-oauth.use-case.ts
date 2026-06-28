@@ -1,6 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { randomBytes } from 'crypto';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
@@ -8,8 +8,8 @@ import { loadEnv } from '../../../../common/config/env';
 import { EventBus } from '../../../../common/messaging/event-bus.interface';
 import { UserRegisteredEvent } from '../../../../common/messaging/events';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
-import { USER_CONSTANTS } from '../../../user/domain/user.entity';
-import type { UserEntity } from '../../../user/domain/user.entity';
+import { USER_CONSTANTS, USER_LANGUAGES } from '../../../user/domain/user.entity';
+import type { UserEntity, UserLanguage } from '../../../user/domain/user.entity';
 import { PasswordHasher } from '../../domain/password-hasher.interface';
 import { OAuthProviderClient } from '../../domain/oauth-provider.interface';
 import { RefreshTokenRepository } from '../../domain/refresh-token.repository.interface';
@@ -19,6 +19,7 @@ export class CompleteGoogleOAuthRequestDTO {
   static schema = z.object({
     code: z.string().min(1),
     state: z.string().min(1),
+    language: z.enum(USER_LANGUAGES).optional(),
   });
 
   @ApiProperty()
@@ -26,6 +27,9 @@ export class CompleteGoogleOAuthRequestDTO {
 
   @ApiProperty()
   state!: string;
+
+  @ApiPropertyOptional({ enum: USER_LANGUAGES, default: 'english' })
+  language!: UserLanguage;
 }
 
 export const CompleteGoogleOAuthDTO = CompleteGoogleOAuthRequestDTO.schema;
@@ -73,7 +77,11 @@ export class CompleteGoogleOAuthUseCase {
     const existingUser = await this.users.findByEmail(profile.email);
     let user = existingUser;
     if (!user) {
-      user = await this.createUserFromGoogleProfile(profile.email, profile.name);
+      user = await this.createUserFromGoogleProfile(
+        profile.email,
+        profile.name,
+        input.language ?? USER_CONSTANTS.LANGUAGE_DEFAULT,
+      );
       await this.publishUserRegisteredEvent(user);
     }
 
@@ -84,7 +92,11 @@ export class CompleteGoogleOAuthUseCase {
     return this.createSessionTokens(user.uuid, user.role);
   }
 
-  private async createUserFromGoogleProfile(email: string, name: string | null) {
+  private async createUserFromGoogleProfile(
+    email: string,
+    name: string | null,
+    language: UserLanguage,
+  ) {
     const randomPassword = randomBytes(32).toString('hex');
     const passwordHash = await this.hasher.hash(randomPassword);
     const normalizedName = this.normalizeName(name, email);
@@ -93,7 +105,7 @@ export class CompleteGoogleOAuthUseCase {
       email,
       passwordHash,
       role: USER_CONSTANTS.ROLE_DEFAULT,
-      language: USER_CONSTANTS.LANGUAGE_DEFAULT,
+      language,
       birthDate: null,
     });
   }
