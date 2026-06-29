@@ -11,7 +11,28 @@ type MockFunction<Args extends unknown[] = unknown[], Return = unknown> = ((
 };
 
 type UserRepositoryMock = {
+  create: MockFunction<
+    [
+      {
+        name: string;
+        email: string;
+        passwordHash: string;
+        role: string;
+        language: UserEntity['language'];
+        birthDate: UserEntity['birthDate'];
+      },
+    ],
+    Promise<UserEntity>
+  >;
+  findAll: MockFunction<[], Promise<UserEntity[]>>;
   findById: MockFunction<[string], Promise<UserEntity | null>>;
+  findByEmail: MockFunction<[string], Promise<UserEntity | null>>;
+  findByEmailWithPassword: MockFunction<[string], Promise<UserEntity | null>>;
+  existsByEmail: MockFunction<[string], Promise<boolean>>;
+  updateNameById: MockFunction<[string, string, Date], Promise<boolean>>;
+  updatePasswordById: MockFunction<[string, string, Date], Promise<boolean>>;
+  updateActiveById: MockFunction<[string, boolean, Date], Promise<boolean>>;
+  updateBirthDateById: MockFunction<[string, Date | null, Date], Promise<boolean>>;
   updateLanguageById: MockFunction<[string, string, Date], Promise<boolean>>;
 };
 
@@ -31,14 +52,19 @@ function createMock<Args extends unknown[] = unknown[], Return = unknown>(): Moc
   return fn;
 }
 
-function createRepo(overrides?: Partial<UserRepositoryMock>): {
-  findById: MockFunction<[string], Promise<UserEntity | null>>;
-  updateLanguageById: MockFunction<[string, string, Date], Promise<boolean>>;
-} {
+function createRepo(): UserRepositoryMock {
   return {
+    create: createMock(),
+    findAll: createMock(),
     findById: createMock(),
+    findByEmail: createMock(),
+    findByEmailWithPassword: createMock(),
+    existsByEmail: createMock(),
+    updateNameById: createMock(),
+    updatePasswordById: createMock(),
+    updateActiveById: createMock(),
+    updateBirthDateById: createMock(),
     updateLanguageById: createMock(),
-    ...overrides,
   };
 }
 

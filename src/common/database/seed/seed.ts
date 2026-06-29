@@ -44,7 +44,7 @@ export async function runSeed() {
       passwordHash,
       role,
       language: 'portuguese',
-      birthDate: null,
+      birthDate: new Date('1999-11-16'),
       createdAt: now,
       updatedAt: now,
       isActive,
