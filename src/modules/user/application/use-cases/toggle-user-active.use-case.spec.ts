@@ -33,6 +33,8 @@ type UserRepositoryMock = {
   updateNameById: MockFunction<[string, string, Date], Promise<boolean>>;
   updatePasswordById: MockFunction<[string, string, Date], Promise<boolean>>;
   updateActiveById: MockFunction<[string, boolean, Date], Promise<boolean>>;
+  updateBirthDateById: MockFunction<[string, Date | null, Date], Promise<boolean>>;
+  updateLanguageById: MockFunction<[string, string, Date], Promise<boolean>>;
 };
 
 function createMock<Args extends unknown[] = unknown[], Return = unknown>(): MockFunction<
