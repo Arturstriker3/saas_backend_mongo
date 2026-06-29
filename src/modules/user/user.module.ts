@@ -9,6 +9,8 @@ import { ChangeUserNameUseCase } from './application/use-cases/change-user-name.
 import { ChangeUserPasswordUseCase } from './application/use-cases/change-user-password.use-case';
 import { DeactivateUserUseCase } from './application/use-cases/deactivate-user.use-case';
 import { ToggleUserActiveUseCase } from './application/use-cases/toggle-user-active.use-case';
+import { ChangeUserBirthDateUseCase } from './application/use-cases/change-user-birth-date.use-case';
+import { ChangeUserLanguageUseCase } from './application/use-cases/change-user-language.use-case';
 import { UserController } from './presentation/rest/user.controller';
 import { PasswordHasher, PASSWORD_HASHER } from '../auth/domain/password-hasher.interface';
 import { Argon2idPasswordHasher } from '../auth/infrastructure/password-hasher.argon2id';
@@ -57,6 +59,16 @@ import { Argon2idPasswordHasher } from '../auth/infrastructure/password-hasher.a
     {
       provide: ToggleUserActiveUseCase,
       useFactory: (repo: UserRepositoryMongo) => new ToggleUserActiveUseCase(repo),
+      inject: [UserRepositoryMongo],
+    },
+    {
+      provide: ChangeUserBirthDateUseCase,
+      useFactory: (repo: UserRepositoryMongo) => new ChangeUserBirthDateUseCase(repo),
+      inject: [UserRepositoryMongo],
+    },
+    {
+      provide: ChangeUserLanguageUseCase,
+      useFactory: (repo: UserRepositoryMongo) => new ChangeUserLanguageUseCase(repo),
       inject: [UserRepositoryMongo],
     },
   ],

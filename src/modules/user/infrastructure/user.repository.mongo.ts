@@ -89,4 +89,14 @@ export class UserRepositoryMongo implements UserRepository {
     const result = await this.model.updateOne({ uuid: id }, { $set: { isActive, updatedAt } });
     return result.matchedCount > 0;
   }
+
+  async updateBirthDateById(id: string, birthDate: Date | null, updatedAt: Date): Promise<boolean> {
+    const result = await this.model.updateOne({ uuid: id }, { $set: { birthDate, updatedAt } });
+    return result.matchedCount > 0;
+  }
+
+  async updateLanguageById(id: string, language: UserEntity['language'], updatedAt: Date): Promise<boolean> {
+    const result = await this.model.updateOne({ uuid: id }, { $set: { language, updatedAt } });
+    return result.matchedCount > 0;
+  }
 }

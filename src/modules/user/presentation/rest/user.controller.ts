@@ -46,6 +46,18 @@ import {
   ToggleUserActiveUseCase,
   type ToggleUserActiveInputDTO,
 } from '../../application/use-cases/toggle-user-active.use-case';
+import {
+  ChangeUserBirthDateRequestDTO,
+  ChangeUserBirthDateBodyDTO,
+  ChangeUserBirthDateUseCase,
+  type ChangeUserBirthDateBodyInputDTO,
+} from '../../application/use-cases/change-user-birth-date.use-case';
+import {
+  ChangeUserLanguageRequestDTO,
+  ChangeUserLanguageBodyDTO,
+  ChangeUserLanguageUseCase,
+  type ChangeUserLanguageBodyInputDTO,
+} from '../../application/use-cases/change-user-language.use-case';
 import type { UserEntity } from '../../domain/user.entity';
 import { Authenticated } from '../../../../common/http/access.decorator';
 import { ZodValidationPipe } from '../../../../common/http/zod-validation.pipe';
@@ -92,6 +104,10 @@ export class UserController {
     @Inject(DeactivateUserUseCase) private readonly deactivateUseCase: DeactivateUserUseCase,
     @Inject(ToggleUserActiveUseCase)
     private readonly toggleUserActiveUseCase: ToggleUserActiveUseCase,
+    @Inject(ChangeUserBirthDateUseCase)
+    private readonly changeBirthDateUseCase: ChangeUserBirthDateUseCase,
+    @Inject(ChangeUserLanguageUseCase)
+    private readonly changeLanguageUseCase: ChangeUserLanguageUseCase,
   ) {}
 
   @Get()
@@ -167,6 +183,32 @@ export class UserController {
   async deactivate(@Req() req: FastifyRequest & { user: { userId: string } }) {
     const params: DeactivateUserInputDTO = { userId: req.user.userId };
     const entity = await this.deactivateUseCase.execute(params);
+    return this.toJSON(entity);
+  }
+
+  @Post('me/birth-date')
+  @Authenticated()
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({ type: ChangeUserBirthDateRequestDTO })
+  @ApiOkResponse({ type: UserResponseDTO })
+  async changeBirthDate(
+    @Req() req: FastifyRequest & { user: { userId: string } },
+    @Body(new ZodValidationPipe(ChangeUserBirthDateBodyDTO)) body: ChangeUserBirthDateBodyInputDTO,
+  ) {
+    const entity = await this.changeBirthDateUseCase.execute(req.user.userId, body);
+    return this.toJSON(entity);
+  }
+
+  @Post('me/language')
+  @Authenticated()
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({ type: ChangeUserLanguageRequestDTO })
+  @ApiOkResponse({ type: UserResponseDTO })
+  async changeLanguage(
+    @Req() req: FastifyRequest & { user: { userId: string } },
+    @Body(new ZodValidationPipe(ChangeUserLanguageBodyDTO)) body: ChangeUserLanguageBodyInputDTO,
+  ) {
+    const entity = await this.changeLanguageUseCase.execute(req.user.userId, body);
     return this.toJSON(entity);
   }
 

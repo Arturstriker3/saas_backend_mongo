@@ -65,6 +65,8 @@ function createRepo(): UserRepositoryMock {
     updateNameById: createMock(),
     updatePasswordById: createMock(),
     updateActiveById: createMock(),
+    updateBirthDateById: createMock(),
+    updateLanguageById: createMock(),
   };
 }
 
