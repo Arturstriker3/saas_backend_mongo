@@ -32,7 +32,7 @@ type UserRepositoryMock = {
   updateNameById: MockFunction<[string, string, Date], Promise<boolean>>;
   updatePasswordById: MockFunction<[string, string, Date], Promise<boolean>>;
   updateActiveById: MockFunction<[string, boolean, Date], Promise<boolean>>;
-  updateBirthDateById: MockFunction<[string, Date | null, Date], Promise<boolean>>;
+  updateBirthDateById: MockFunction<[string, string | null, Date], Promise<boolean>>;
   updateLanguageById: MockFunction<[string, string, Date], Promise<boolean>>;
 };
 
@@ -94,10 +94,8 @@ describe('ChangeUserBirthDateUseCase', () => {
     const result = await useCase.execute(user.uuid, { birthDate: '1995-06-15' });
 
     expect(repo.findById.calls).toEqual([[user.uuid]]);
-    expect(repo.updateBirthDateById.calls).toEqual([
-      [user.uuid, expect.any(Date), expect.any(Date)],
-    ]);
-    expect(result.birthDate).toBeInstanceOf(Date);
+    expect(repo.updateBirthDateById.calls).toEqual([[user.uuid, '1995-06-15', expect.any(Date)]]);
+    expect(result.birthDate).toBe('1995-06-15');
   });
 
   it('throws NotFoundException when user does not exist', async () => {

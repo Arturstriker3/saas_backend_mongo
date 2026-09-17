@@ -59,6 +59,24 @@ Este documento é a fonte de verdade para regras de negócio e regras funcionais
 - No cadastro por admin (`POST /users`), `birthDate` também é obrigatório e segue a mesma regra de idade mínima de 16 anos.
 - No cadastro por admin, `language` é opcional com default `english`.
 
+## Birth Date Rules
+
+- `birthDate` é data civil (sem fuso horário), no formato `YYYY-MM-DD`, persistida como texto.
+- Formato inválido ou dia inexistente no calendário (ex.: `2025-02-30`) é rejeitado com `400 Bad Request`.
+- Idade mínima de 16 anos é validada em todos os pontos de escrita: cadastro público (`POST /auth/register`), cadastro por admin (`POST /users`) e alteração pelo perfil (`POST /users/me/birth-date`).
+- `birthDate` fica nulo apenas para contas criadas via Google OAuth, que não informam data de nascimento.
+- A regra é centralizada em `src/modules/user/domain/birth-date.policy.ts`.
+- A exibição da data segue o idioma do app e o dia não pode ser deslocado por conversão de fuso.
+
+## Email Domain Rules
+
+- O cadastro público (`POST /auth/register`) bloqueia domínios de email temporário/descartável.
+- A lista de domínios bloqueados fica em `src/modules/auth/domain/disposable-email-domains.json`, sincronizada com https://github.com/disposable-email-domains/disposable-email-domains (licença MIT).
+- A verificação cobre subdomínios do domínio bloqueado e ignora diferença de maiúsculas/minúsculas.
+- O bloqueio retorna `400 Bad Request` com a mensagem `Email domain is not allowed`.
+- O cadastro por admin (`POST /users`) não aplica o bloqueio, permitindo exceções internas explícitas.
+- O cadastro via Google OAuth não aplica o bloqueio, pois a conta é criada a partir de provedor externo verificado.
+
 ## Email Language Rules
 
 - Eventos de email devem carregar `language` no payload.

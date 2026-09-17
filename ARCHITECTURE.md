@@ -89,6 +89,13 @@ Example:
 - Avoid countDocuments() on large collections.
 - Keep queries simple, predictable, and with minimal payload to reduce CPU and memory usage in a low-instance API.
 
+## Date & Time Conventions
+
+- Instants (`createdAt`, `updatedAt`, `expiresAt`) are stored as BSON Date in UTC and serialized as ISO 8601.
+- Calendar dates without time (`birthDate`) are stored as `YYYY-MM-DD` strings so no timezone conversion can shift the day.
+- Calendar date comparisons use text ordering, which is chronological for `YYYY-MM-DD`.
+- Calendar date rules live in `src/modules/user/domain/birth-date.policy.ts` and are reused by auth and user use cases.
+
 ## Mongo Resilience
 
 - Mongo connection uses explicit pool and timeout tuning via env in src/common/database/mongo.connection.ts.

@@ -26,7 +26,8 @@ export type UserEntity = {
   updatedAt: Date;
   isActive: boolean;
   language: UserLanguage;
-  birthDate: Date | null;
+  /** Data civil (sem fuso) no formato `YYYY-MM-DD`. */
+  birthDate: string | null;
 };
 
 export function makeUserSchema() {
@@ -60,7 +61,7 @@ export function makeUserSchema() {
       default: USER_CONSTANTS.LANGUAGE_DEFAULT,
       required: true,
     },
-    birthDate: { type: Date, default: null, required: false },
+    birthDate: { type: String, default: null, required: false },
     isActive: { type: Boolean, default: USER_CONSTANTS.IS_ACTIVE_DEFAULT, required: true },
     createdAt: { type: Date, default: Date.now, required: true },
     updatedAt: { type: Date, default: Date.now, required: true },

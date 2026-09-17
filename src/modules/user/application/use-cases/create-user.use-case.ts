@@ -1,20 +1,11 @@
 import { z } from 'zod';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { isAtLeastMinimumAge, isValidCalendarDate } from '../../domain/birth-date.policy';
 import { UserRepository } from '../../domain/user.repository.interface';
 import { USER_CONSTANTS, USER_LANGUAGES } from '../../domain/user.entity';
 import type { UserEntity } from '../../domain/user.entity';
 import { PasswordHasher } from '../../../auth/domain/password-hasher.interface';
 import { ROLES } from '../../../role/domain/role.types';
-
-function isAtLeastMinimumAge(birthDate: Date, minimumAgeYears: number): boolean {
-  const today = new Date();
-  const minimumBirthDate = new Date(
-    today.getFullYear() - minimumAgeYears,
-    today.getMonth(),
-    today.getDate(),
-  );
-  return birthDate <= minimumBirthDate;
-}
 
 export class CreateUserRequestDTO {
   static schema = z.object({
@@ -23,8 +14,9 @@ export class CreateUserRequestDTO {
     password: z.string().min(USER_CONSTANTS.PASSWORD_MIN_LENGTH),
     role: z.enum(ROLES),
     language: z.enum(USER_LANGUAGES).optional().default(USER_CONSTANTS.LANGUAGE_DEFAULT),
-    birthDate: z.coerce
-      .date()
+    birthDate: z
+      .string()
+      .refine(isValidCalendarDate, 'birthDate: must be a valid date in YYYY-MM-DD format')
       .refine(
         (birthDate) => isAtLeastMinimumAge(birthDate, USER_CONSTANTS.MINIMUM_AGE_YEARS),
         `birthDate: must be at least ${USER_CONSTANTS.MINIMUM_AGE_YEARS} years old`,

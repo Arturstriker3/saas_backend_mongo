@@ -87,8 +87,8 @@ class UserResponseDTO {
   @ApiProperty({ enum: ['portuguese', 'english', 'spanish'], example: 'english' })
   language!: string;
 
-  @ApiProperty({ format: 'date-time', nullable: true })
-  birthDate!: Date | null;
+  @ApiProperty({ example: '1995-06-15', format: 'date', nullable: true })
+  birthDate!: string | null;
 }
 
 @ApiTags('Users')

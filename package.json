@@ -19,6 +19,7 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "seed": "ts-node src/common/database/seed/seed.ts",
+    "update:disposableDomains": "bun run src/scripts/update-disposable-email-domains.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

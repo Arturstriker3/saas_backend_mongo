@@ -1,6 +1,8 @@
 import { z } from 'zod';
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { isDisposableEmailDomain } from '../../domain/email-domain.policy';
+import { isAtLeastMinimumAge, isValidCalendarDate } from '../../../user/domain/birth-date.policy';
 import { UserRepository } from '../../../user/domain/user.repository.interface';
 import { PasswordHasher } from '../../domain/password-hasher.interface';
 import { USER_CONSTANTS, USER_LANGUAGES } from '../../../user/domain/user.entity';
@@ -8,24 +10,15 @@ import type { UserEntity } from '../../../user/domain/user.entity';
 import { EventBus } from '../../../../common/messaging/event-bus.interface';
 import { UserRegisteredEvent } from '../../../../common/messaging/events';
 
-function isAtLeastMinimumAge(birthDate: Date, minimumAgeYears: number): boolean {
-  const today = new Date();
-  const minimumBirthDate = new Date(
-    today.getFullYear() - minimumAgeYears,
-    today.getMonth(),
-    today.getDate(),
-  );
-  return birthDate <= minimumBirthDate;
-}
-
 export class RegisterUserRequestDTO {
   static schema = z.object({
     name: z.string().min(USER_CONSTANTS.NAME_MIN_LENGTH).max(USER_CONSTANTS.NAME_MAX_LENGTH),
     email: z.string().email().max(USER_CONSTANTS.EMAIL_MAX_LENGTH),
     password: z.string().min(USER_CONSTANTS.PASSWORD_MIN_LENGTH),
     language: z.enum(USER_LANGUAGES).optional().default(USER_CONSTANTS.LANGUAGE_DEFAULT),
-    birthDate: z.coerce
-      .date()
+    birthDate: z
+      .string()
+      .refine(isValidCalendarDate, 'birthDate: must be a valid date in YYYY-MM-DD format')
       .refine(
         (birthDate) => isAtLeastMinimumAge(birthDate, USER_CONSTANTS.MINIMUM_AGE_YEARS),
         `birthDate: must be at least ${USER_CONSTANTS.MINIMUM_AGE_YEARS} years old`,
@@ -77,7 +70,7 @@ export class RegisterUserResponseDTO {
   @ApiProperty({ enum: USER_LANGUAGES, example: 'english' })
   language!: (typeof USER_LANGUAGES)[number];
 
-  @ApiProperty({ format: 'date-time', nullable: true })
+  @ApiProperty({ example: '1995-06-15', format: 'date', nullable: true })
   birthDate!: UserEntity['birthDate'];
 }
 
@@ -91,6 +84,10 @@ export class RegisterUserUseCase {
   ) {}
 
   async execute(input: RegisterUserInputDTO): Promise<RegisterUserOutputDTO> {
+    if (isDisposableEmailDomain(input.email)) {
+      throw new BadRequestException('Email domain is not allowed');
+    }
+
     const exists = await this.users.existsByEmail(input.email.toLowerCase());
     if (exists) throw new ConflictException('Email already registered');
     const passwordHash = await this.hasher.hash(input.password);

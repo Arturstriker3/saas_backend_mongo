@@ -7,6 +7,7 @@
     "declaration": false,
     "strict": true,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "moduleResolution": "nodenext",
     "types": ["bun"],

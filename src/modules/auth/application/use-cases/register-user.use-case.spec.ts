@@ -35,7 +35,7 @@ type UserRepositoryMock = {
   updateNameById: MockFunction<[string, string, Date], Promise<boolean>>;
   updatePasswordById: MockFunction<[string, string, Date], Promise<boolean>>;
   updateActiveById: MockFunction<[string, boolean, Date], Promise<boolean>>;
-  updateBirthDateById: MockFunction<[string, Date | null, Date], Promise<boolean>>;
+  updateBirthDateById: MockFunction<[string, string | null, Date], Promise<boolean>>;
   updateLanguageById: MockFunction<[string, UserEntity['language'], Date], Promise<boolean>>;
 };
 
@@ -107,7 +107,7 @@ describe('RegisterUserUseCase', () => {
       email: 'John.Doe@Example.com',
       password: 'password123',
       language: 'spanish' as const,
-      birthDate: new Date('1990-01-10T00:00:00.000Z'),
+      birthDate: '1990-01-10',
     };
     const now = new Date('2025-01-01T10:00:00.000Z');
     const entity = {
@@ -176,7 +176,7 @@ describe('RegisterUserUseCase', () => {
       email: 'john.doe@example.com',
       password: 'password123',
       language: 'portuguese' as const,
-      birthDate: new Date('1995-01-01T00:00:00.000Z'),
+      birthDate: '1995-01-01',
     };
     deps.users.existsByEmail.setResolvedValue(true);
 
@@ -188,6 +188,31 @@ describe('RegisterUserUseCase', () => {
     }
 
     expect(error).toBeInstanceOf(ConflictException);
+    expect(deps.users.create.calls.length).toBe(0);
+    expect(deps.events.publish.calls.length).toBe(0);
+  });
+
+  it('throws when email domain is disposable', async () => {
+    const deps = createDeps();
+    const useCase = new RegisterUserUseCase(deps.users, deps.hasher, deps.events);
+    const input = {
+      name: 'John Doe',
+      email: 'john.doe@mailinator.com',
+      password: 'password123',
+      language: 'english' as const,
+      birthDate: '1995-01-01',
+    };
+
+    let error: unknown;
+    try {
+      await useCase.execute(input);
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(deps.users.existsByEmail.calls.length).toBe(0);
+    expect(deps.hasher.hash.calls.length).toBe(0);
     expect(deps.users.create.calls.length).toBe(0);
     expect(deps.events.publish.calls.length).toBe(0);
   });
@@ -215,11 +240,13 @@ describe('RegisterUserUseCase', () => {
 
   it('throws validation error when age is below 16 on zod pipe', () => {
     const pipe = new ZodValidationPipe(RegisterUserDTO);
+    const today = new Date();
+    const underageBirthDate = `${today.getFullYear() - 1}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const input = {
       name: 'John Doe',
       email: 'john.doe@example.com',
       password: 'password123',
-      birthDate: new Date().toISOString(),
+      birthDate: underageBirthDate,
     };
 
     let error: unknown;

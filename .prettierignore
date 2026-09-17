@@ -6,3 +6,4 @@ tmp/
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+src/modules/auth/domain/disposable-email-domains.json

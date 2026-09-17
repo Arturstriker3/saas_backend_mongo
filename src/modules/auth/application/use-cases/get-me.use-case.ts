@@ -30,7 +30,7 @@ export class GetMeResponseDTO {
   @ApiProperty({ enum: ['portuguese', 'english', 'spanish'], example: 'english' })
   language!: UserEntity['language'];
 
-  @ApiProperty({ format: 'date-time', nullable: true })
+  @ApiProperty({ example: '1995-06-15', format: 'date', nullable: true })
   birthDate!: UserEntity['birthDate'];
 }
 

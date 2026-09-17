@@ -1,10 +1,20 @@
 import { NotFoundException } from '@nestjs/common';
 import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
+import { isAtLeastMinimumAge, isValidCalendarDate } from '../../domain/birth-date.policy';
+import { USER_CONSTANTS } from '../../domain/user.entity';
 import { UserRepository } from '../../domain/user.repository.interface';
 
 export class ChangeUserBirthDateRequestDTO {
-  static schema = z.object({ birthDate: z.string().min(1) });
+  static schema = z.object({
+    birthDate: z
+      .string()
+      .refine(isValidCalendarDate, 'birthDate: must be a valid date in YYYY-MM-DD format')
+      .refine(
+        (birthDate) => isAtLeastMinimumAge(birthDate, USER_CONSTANTS.MINIMUM_AGE_YEARS),
+        `birthDate: must be at least ${USER_CONSTANTS.MINIMUM_AGE_YEARS} years old`,
+      ),
+  });
 
   @ApiProperty({ example: '1995-06-15', format: 'date' })
   birthDate!: string;
@@ -23,9 +33,8 @@ export class ChangeUserBirthDateUseCase {
   async execute(userId: string, input: ChangeUserBirthDateBodyInputDTO) {
     const user = await this.repo.findById(userId);
     if (!user) throw new NotFoundException('User not found');
-    const birthDate = new Date(input.birthDate);
     const updatedAt = new Date();
-    await this.repo.updateBirthDateById(userId, birthDate, updatedAt);
-    return { ...user, birthDate, updatedAt };
+    await this.repo.updateBirthDateById(userId, input.birthDate, updatedAt);
+    return { ...user, birthDate: input.birthDate, updatedAt };
   }
 }

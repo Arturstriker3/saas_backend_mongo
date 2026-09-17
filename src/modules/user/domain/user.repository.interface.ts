@@ -17,7 +17,7 @@ export interface UserRepository {
   updateNameById(id: string, name: string, updatedAt: Date): Promise<boolean>;
   updatePasswordById(id: string, passwordHash: string, updatedAt: Date): Promise<boolean>;
   updateActiveById(id: string, isActive: boolean, updatedAt: Date): Promise<boolean>;
-  updateBirthDateById(id: string, birthDate: Date | null, updatedAt: Date): Promise<boolean>;
+  updateBirthDateById(id: string, birthDate: string | null, updatedAt: Date): Promise<boolean>;
   updateLanguageById(
     id: string,
     language: UserEntity['language'],

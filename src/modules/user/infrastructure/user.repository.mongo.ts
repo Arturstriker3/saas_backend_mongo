@@ -90,7 +90,7 @@ export class UserRepositoryMongo implements UserRepository {
     return result.matchedCount > 0;
   }
 
-  async updateBirthDateById(id: string, birthDate: Date | null, updatedAt: Date): Promise<boolean> {
+  async updateBirthDateById(id: string, birthDate: string | null, updatedAt: Date): Promise<boolean> {
     const result = await this.model.updateOne({ uuid: id }, { $set: { birthDate, updatedAt } });
     return result.matchedCount > 0;
   }
