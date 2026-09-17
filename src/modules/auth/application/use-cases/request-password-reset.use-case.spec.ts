@@ -34,6 +34,8 @@ type UserRepositoryMock = {
   updateNameById: MockFunction<[string, string, Date], Promise<boolean>>;
   updatePasswordById: MockFunction<[string, string, Date], Promise<boolean>>;
   updateActiveById: MockFunction<[string, boolean, Date], Promise<boolean>>;
+  updateBirthDateById: MockFunction<[string, Date | null, Date], Promise<boolean>>;
+  updateLanguageById: MockFunction<[string, UserEntity['language'], Date], Promise<boolean>>;
 };
 
 type PasswordResetRepositoryMock = {
@@ -83,6 +85,8 @@ function createDeps(): TestDeps {
       updateNameById: createMock(),
       updatePasswordById: createMock(),
       updateActiveById: createMock(),
+      updateBirthDateById: createMock(),
+      updateLanguageById: createMock(),
     },
     resets: {
       save: createMock(),

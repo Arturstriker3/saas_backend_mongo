@@ -22,16 +22,6 @@ export type PasswordResetRequestedEvent = {
   occurredAt: Date;
 };
 
-export type OrderConfirmedEvent = {
-  name: 'OrderConfirmed';
-  payload: {
-    email: string;
-    orderId: string;
-    language: EmailLanguage;
-  };
-  occurredAt: Date;
-};
-
-export type DomainEvent = UserRegisteredEvent | PasswordResetRequestedEvent | OrderConfirmedEvent;
+export type DomainEvent = UserRegisteredEvent | PasswordResetRequestedEvent;
 
 export type DomainEventName = DomainEvent['name'];

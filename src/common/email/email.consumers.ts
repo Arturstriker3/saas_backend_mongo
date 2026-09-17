@@ -33,16 +33,6 @@ export class EmailConsumers implements OnModuleInit, OnModuleDestroy {
       );
     });
 
-    await this.setupConsumer(channel, 'email.order_confirmation', async (event) => {
-      if (event.name !== 'OrderConfirmed') return;
-      if (env.EMAIL_ORDER_CONFIRMATION_ENABLED !== 'true') return;
-      await this.email.sendOrderConfirmation(
-        event.payload.email,
-        event.payload.orderId,
-        event.payload.language,
-      );
-    });
-
     this.channel = channel;
   }
 

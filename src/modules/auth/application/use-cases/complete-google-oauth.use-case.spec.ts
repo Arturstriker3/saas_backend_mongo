@@ -36,6 +36,8 @@ type UserRepositoryMock = {
   updateNameById: MockFunction<[string, string, Date], Promise<boolean>>;
   updatePasswordById: MockFunction<[string, string, Date], Promise<boolean>>;
   updateActiveById: MockFunction<[string, boolean, Date], Promise<boolean>>;
+  updateBirthDateById: MockFunction<[string, Date | null, Date], Promise<boolean>>;
+  updateLanguageById: MockFunction<[string, UserEntity['language'], Date], Promise<boolean>>;
 };
 
 type PasswordHasherMock = {
@@ -51,7 +53,10 @@ type RefreshTokenRepositoryMock = {
 };
 
 type JwtServiceMock = {
-  verifyAsync: MockFunction<[string, { secret: string }], Promise<{ provider: string; nonce: string }>>;
+  verifyAsync: MockFunction<
+    [string, { secret: string }],
+    Promise<{ provider: string; nonce: string }>
+  >;
   signAsync: MockFunction<
     [Record<string, unknown>, { secret: string; expiresIn: number }],
     Promise<string>
@@ -107,6 +112,8 @@ function createDeps(): TestDeps {
       updateNameById: createMock(),
       updatePasswordById: createMock(),
       updateActiveById: createMock(),
+      updateBirthDateById: createMock(),
+      updateLanguageById: createMock(),
     },
     hasher: {
       hash: createMock(),

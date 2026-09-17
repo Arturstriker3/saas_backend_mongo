@@ -27,7 +27,8 @@ async function bootstrap() {
   await channel.close();
   if (env.DOCS_ENABLED === 'true') {
     const config = new DocumentBuilder()
-      .setTitle(`${env.APP_NAME} Backend API`)
+      .setTitle(`${env.APP_NAME} API`)
+      .setDescription('Location intelligence API for site, investment, and expansion decisions.')
       .setVersion(env.DOCS_VERSION)
       .addBearerAuth()
       .build();

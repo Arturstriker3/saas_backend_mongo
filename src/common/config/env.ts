@@ -33,7 +33,6 @@ const EnvSchema = z.object({
   RESEND_API_KEY: z.string().default(''),
   RESEND_FROM: z.string().default('onboarding@resend.dev'),
   EMAIL_WELCOME_ENABLED: z.string().default('true'),
-  EMAIL_ORDER_CONFIRMATION_ENABLED: z.string().default('true'),
   RABBITMQ_URL: z.string().default('amqp://guest:guest@localhost:5672'),
   RABBITMQ_EXCHANGE: z.string().default('domain.events'),
   METRICS_ENABLED: z.string().default('true'),

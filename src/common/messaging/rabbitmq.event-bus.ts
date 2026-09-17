@@ -30,7 +30,6 @@ export class RabbitMQEventBus implements EventBus {
   private getRoutingKey(event: DomainEvent): string {
     if (event.name === 'UserRegistered') return 'email.welcome';
     if (event.name === 'PasswordResetRequested') return 'email.password_reset';
-    if (event.name === 'OrderConfirmed') return 'email.order_confirmation';
     return 'unknown';
   }
 }

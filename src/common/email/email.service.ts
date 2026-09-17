@@ -18,12 +18,6 @@ export class EmailService {
     await this.sendEmail(env.RESEND_FROM, to, content.subject, content.text);
   }
 
-  async sendOrderConfirmation(to: string, orderId: string, language: EmailLanguage): Promise<void> {
-    const env = loadEnv();
-    const content = this.getOrderConfirmationContent(orderId, language);
-    await this.sendEmail(env.RESEND_FROM, to, content.subject, content.text);
-  }
-
   private async sendEmail(from: string, to: string, subject: string, text: string): Promise<void> {
     try {
       await this.resend.emails.send({
@@ -131,36 +125,12 @@ export class EmailService {
 
         Welcome aboard! Your account has been successfully created.
 
-        You’re all set to start using the platform.
+        You’re all set to analyze addresses and regions on the platform.
         If you need any assistance, just let us know — we’ll be happy to help.
 
         Best regards,
         The Team
       `,
-    };
-  }
-
-  private getOrderConfirmationContent(
-    orderId: string,
-    language: EmailLanguage,
-  ): { subject: string; text: string } {
-    if (language === 'portuguese') {
-      return {
-        subject: 'Confirmação de Pedido',
-        text: `Pedido confirmado: ${orderId}`,
-      };
-    }
-
-    if (language === 'spanish') {
-      return {
-        subject: 'Confirmación de Pedido',
-        text: `Pedido confirmado: ${orderId}`,
-      };
-    }
-
-    return {
-      subject: 'Order Confirmation',
-      text: `Order confirmed: ${orderId}`,
     };
   }
 }
