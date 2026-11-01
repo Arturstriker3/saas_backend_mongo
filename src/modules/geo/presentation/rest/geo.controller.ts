@@ -55,6 +55,32 @@ class RegionDatasetEvidenceDTO {
   publishedAt!: Date | null;
 }
 
+class SectorIndicatorsDTO {
+  @ApiProperty({ example: 928, nullable: true })
+  population!: number | null;
+
+  @ApiProperty({ example: 376, nullable: true })
+  households!: number | null;
+
+  @ApiProperty({ example: 336, nullable: true })
+  occupiedHouseholds!: number | null;
+
+  @ApiProperty({ example: 2.8, nullable: true })
+  averageHouseholdSize!: number | null;
+
+  @ApiProperty({ example: 2453.03, nullable: true })
+  averageIncome!: number | null;
+
+  @ApiProperty({ example: 1212, nullable: true })
+  medianIncome!: number | null;
+
+  @ApiProperty({ example: true, nullable: true })
+  urban!: boolean | null;
+
+  @ApiProperty({ type: RegionDatasetEvidenceDTO })
+  dataset!: RegionDatasetEvidenceDTO;
+}
+
 class RegionDetailResponseDTO extends RegionSummaryResponseDTO {
   @ApiProperty({ example: 0 })
   childrenCount!: number;
@@ -64,6 +90,9 @@ class RegionDetailResponseDTO extends RegionSummaryResponseDTO {
 
   @ApiProperty({ type: RegionDatasetEvidenceDTO, nullable: true })
   dataset!: RegionDatasetEvidenceDTO | null;
+
+  @ApiProperty({ type: SectorIndicatorsDTO, nullable: true })
+  indicators!: SectorIndicatorsDTO | null;
 }
 
 class CoverageResponseDTO {

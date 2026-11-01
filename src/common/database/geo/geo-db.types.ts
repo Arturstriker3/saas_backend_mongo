@@ -85,6 +85,20 @@ export interface RegionTable {
   updated_at: Timestamp;
 }
 
+export interface SectorIndicatorTable {
+  sector_code: string;
+  dataset_version_id: string | null;
+  population: number | null;
+  households: number | null;
+  occupied_households: number | null;
+  average_household_size: ColumnType<string | null, string | number | null, string | number | null>;
+  responsible_persons: number | null;
+  average_income: ColumnType<string | null, string | number | null, string | number | null>;
+  median_income: ColumnType<string | null, string | number | null, string | number | null>;
+  urban: boolean | null;
+  updated_at: Timestamp;
+}
+
 export interface GeoDB {
   'geo.dataset_license': DatasetLicenseTable;
   'geo.dataset_version': DatasetVersionTable;
@@ -92,4 +106,5 @@ export interface GeoDB {
   'geo.ingestion_job': IngestionJobTable;
   'geo.ingestion_schedule': IngestionScheduleTable;
   'geo.region': RegionTable;
+  'geo.sector_indicator': SectorIndicatorTable;
 }

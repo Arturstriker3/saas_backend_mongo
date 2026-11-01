@@ -23,6 +23,16 @@ interface RegionDetailRow extends RegionSummaryRow {
   datasetKey: string | null;
   reference: string | null;
   publishedAt: Date | null;
+  indicatorDatasetKey: string | null;
+  indicatorReference: string | null;
+  indicatorPublishedAt: Date | null;
+  population: number | null;
+  households: number | null;
+  occupiedHouseholds: number | null;
+  averageHouseholdSize: number | null;
+  averageIncome: number | null;
+  medianIncome: number | null;
+  urban: boolean | null;
 }
 
 @Injectable()
@@ -66,10 +76,25 @@ export class RegionReadRepositoryPostgis implements RegionReadRepository {
                AS "childrenCount",
              version.dataset_key AS "datasetKey",
              version.reference AS "reference",
-             version.published_at AS "publishedAt"
+             version.published_at AS "publishedAt",
+             indicator_version.dataset_key AS "indicatorDatasetKey",
+             indicator_version.reference AS "indicatorReference",
+             indicator_version.published_at AS "indicatorPublishedAt",
+             indicator.population AS "population",
+             indicator.households AS "households",
+             indicator.occupied_households AS "occupiedHouseholds",
+             indicator.average_household_size::float8 AS "averageHouseholdSize",
+             indicator.average_income::float8 AS "averageIncome",
+             indicator.median_income::float8 AS "medianIncome",
+             indicator.urban AS "urban"
       FROM geo.region AS region
       LEFT JOIN geo.region AS parent ON parent.id = region.parent_id
       LEFT JOIN geo.dataset_version AS version ON version.id = region.dataset_version_id
+      LEFT JOIN geo.sector_indicator AS indicator
+        ON indicator.sector_code = region.ibge_code
+       AND region.level = 'sector'
+      LEFT JOIN geo.dataset_version AS indicator_version
+        ON indicator_version.id = indicator.dataset_version_id
       WHERE region.ibge_code = ${ibgeCode} AND region.level = ${level}
       LIMIT 1
     `.execute(this.db);
@@ -84,6 +109,23 @@ export class RegionReadRepositoryPostgis implements RegionReadRepository {
       dataset: row.datasetKey
         ? { datasetKey: row.datasetKey, reference: row.reference, publishedAt: row.publishedAt }
         : null,
+      indicators:
+        row.indicatorDatasetKey === null
+          ? null
+          : {
+              population: row.population,
+              households: row.households,
+              occupiedHouseholds: row.occupiedHouseholds,
+              averageHouseholdSize: row.averageHouseholdSize,
+              averageIncome: row.averageIncome,
+              medianIncome: row.medianIncome,
+              urban: row.urban,
+              dataset: {
+                datasetKey: row.indicatorDatasetKey,
+                reference: row.indicatorReference,
+                publishedAt: row.indicatorPublishedAt,
+              },
+            },
     };
   }
 }

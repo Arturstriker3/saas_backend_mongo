@@ -70,10 +70,34 @@ export class IngestionScheduler implements OnModuleInit, OnModuleDestroy {
     const adapter = this.adapters.get(schedule.datasetKey);
     if (!adapter) return;
 
-    const reference = schedule.lastReference ?? adapter.defaultReference;
+    const reference = await this.resolveReference(adapter, schedule);
     const jobId = await this.jobs.enqueue(schedule.datasetKey, reference);
     await this.schedules.markQueued(schedule.datasetKey, reference);
     this.logger.log(`${schedule.datasetKey} ${reference} queued (job ${jobId})`);
+  }
+
+  /** Prefers the reference published at the source, falling back to the last used one. */
+  private async resolveReference(
+    adapter: DatasetAdapter,
+    schedule: DueSchedule,
+  ): Promise<string> {
+    const fallback = schedule.lastReference ?? adapter.defaultReference;
+    if (!adapter.discoverReference) return fallback;
+
+    try {
+      const discovered = await adapter.discoverReference();
+      if (schedule.lastReference && schedule.lastReference !== discovered) {
+        this.logger.log(
+          `${adapter.datasetKey}: new source revision ${discovered} (was ${schedule.lastReference})`,
+        );
+      }
+      return discovered;
+    } catch (error) {
+      this.logger.warn(
+        `Could not resolve ${adapter.datasetKey}: ${toMessage(error)}; reusing ${fallback}`,
+      );
+      return fallback;
+    }
   }
 }
 

@@ -230,6 +230,22 @@ Write rules:
 - Hierarchy is resolved by `parent_code` joined to the level above, so states are written before municipalities in the same transaction.
 - A municipality created after the malha vintage has no shape in the source. Gaps are logged with their IBGE codes and tolerated up to `MAX_MISSING_SHAPES`; above that the run fails.
 
+### Sector indicators
+
+`geo.sector_indicator` holds the Censo 2022 attributes, one row per census tract, joined to `geo.region` by `sector_code` (no foreign key: `region` is keyed by `(level, ibge_code)`).
+
+| Column                                                        | Source            |
+| ------------------------------------------------------------- | ----------------- |
+| `population`, `households`, `occupied_households`, `average_household_size` | agregados básicos |
+| `responsible_persons`, `average_income`, `median_income`       | renda do responsável |
+| `urban`                                                       | básicos (situação) |
+
+- The source publishes one ZIP with a dated name per revision (`..._20260520.zip`), so the **reference is the revision date** and each republication becomes a comparable version. `discoverReference()` reads the directory listing, and the scheduler uses it instead of the last reference.
+- Both files are read as a stream of lines and written in batches of 5 000; nothing is buffered per dataset.
+- Basics are upserted first (clearing income), then income fills the sectors that report it. Sectors without a responsible person stay `NULL` instead of inheriting a stale value: 458 772 of 468 099 rows carry income.
+- A row whose sector code is not 15 digits aborts the run — that is how a layout change or a leaked header gets caught before publishing.
+- `GET /geo/regions/:code` returns `indicators` for census tracts, with the dataset reference that produced it.
+
 ## Serving rules
 
 - Bounding box filter before any exact spatial predicate.
