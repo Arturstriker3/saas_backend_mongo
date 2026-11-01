@@ -1,0 +1,60 @@
+# Metrics exposed by postgres_exporter for the geo ingestion queue.
+# These stay valid even when the worker process is down, which is exactly the signal we need.
+# postgres_exporter names each series as <query name>_<column name>.
+# Note: the extend.query-path mechanism is flagged as deprecated by postgres_exporter >= 0.16.
+
+geo_ingestion:
+  query: |
+    SELECT statuses.status AS status, count(job.id) AS jobs
+    FROM (VALUES ('queued'), ('running'), ('failed')) AS statuses(status)
+    LEFT JOIN geo.ingestion_job AS job ON job.status = statuses.status
+    GROUP BY statuses.status
+  master: false
+  cache_seconds: 15
+  metrics:
+    - status:
+        usage: 'LABEL'
+        description: 'Job status'
+    - jobs:
+        usage: 'GAUGE'
+        description: 'Number of ingestion jobs in the status'
+
+geo_queue_oldest_queued:
+  query: |
+    SELECT COALESCE(EXTRACT(EPOCH FROM (now() - min(run_after))), 0) AS seconds
+    FROM geo.ingestion_job
+    WHERE status = 'queued' AND run_after <= now()
+  master: false
+  cache_seconds: 15
+  metrics:
+    - seconds:
+        usage: 'GAUGE'
+        description: 'Age of the oldest due queued job in seconds'
+
+geo_stuck_running:
+  query: |
+    SELECT count(*) AS jobs
+    FROM geo.ingestion_job
+    WHERE status = 'running' AND locked_at < now() - interval '15 minutes'
+  master: false
+  cache_seconds: 15
+  metrics:
+    - jobs:
+        usage: 'GAUGE'
+        description: 'Running jobs whose heartbeat is older than 15 minutes'
+
+geo_dataset_age:
+  query: |
+    SELECT dataset_key, EXTRACT(EPOCH FROM (now() - max(published_at))) AS seconds
+    FROM geo.dataset_version
+    WHERE status = 'published'
+    GROUP BY dataset_key
+  master: false
+  cache_seconds: 60
+  metrics:
+    - dataset_key:
+        usage: 'LABEL'
+        description: 'Dataset key'
+    - seconds:
+        usage: 'GAUGE'
+        description: 'Seconds since the last published version'

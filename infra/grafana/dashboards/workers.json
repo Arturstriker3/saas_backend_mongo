@@ -1,0 +1,277 @@
+{
+  "uid": "workers",
+  "title": "Saúde dos robôs de coleta",
+  "description": "Monitoramento dos programas que baixam e atualizam os dados públicos do Marcato.",
+  "tags": ["workers", "ingestion"],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 10,
+      "type": "text",
+      "title": "Como ler este painel",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "**Verde** = funcionando normalmente.\n\n**Laranja** = atenção, ainda não é problema.\n\n**Vermelho** = algo parado ou com erro e precisa de ação.\n\nPasse o mouse sobre o **ⓘ** no canto de cada bloco para ver, em uma frase, o que ele mede.\n\n### O que é cada base\n\n| Nome no gráfico | O que é |\n| --- | --- |\n| `ibge_malha` | contornos de municípios, bairros e setores |\n| `ibge_censo` | população e renda por setor censitário |\n| `ibge_estimativas` | população estimada de cada município |\n| `cnefe` | endereços com coordenadas |\n| `rfb_cnpj` | empresas da Receita Federal |\n\nOs números se referem a **coleta de dados públicos** (IBGE, Receita Federal, Banco Central) — não são acessos de usuários ao sistema."
+      }
+    },
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Robôs ligados",
+      "description": "Mostra se os programas que baixam os dados estão no ar. Verde = ligado. Vermelho = parado, e nenhum dado novo entra enquanto isso.",
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"worker-geo\"}",
+          "legendFormat": "coleta de localização"
+        },
+        {
+          "refId": "B",
+          "expr": "up{job=\"worker-email\"}",
+          "legendFormat": "envio de e-mail"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Dado mais antigo esperando",
+      "description": "Há quanto tempo o dado mais antigo está na fila esperando ser baixado. Até 15 minutos é normal. Acima de 1 hora, o robô está parado ou sobrecarregado.",
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "geo_queue_oldest_queued_seconds",
+          "legendFormat": "espera"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 900 },
+              { "color": "red", "value": 3600 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Coletas travadas",
+      "description": "Coletas que começaram e não terminam há mais de 15 minutos. Normalmente indicam que o download travou ou o robô caiu no meio do trabalho.",
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "geo_stuck_running_jobs", "legendFormat": "travadas" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Coletas por situação",
+      "description": "Quantidade de coletas em cada etapa: esperando na fila, em andamento e com erro. Se 'esperando' só cresce, o robô não está dando conta.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(geo_ingestion_jobs{status=\"queued\"})",
+          "legendFormat": "esperando"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(geo_ingestion_jobs{status=\"running\"})",
+          "legendFormat": "em andamento"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(geo_ingestion_jobs{status=\"failed\"})",
+          "legendFormat": "com erro"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Coletas concluídas por segundo",
+      "description": "Ritmo de trabalho dos robôs. Ficar em zero por muito tempo, com a fila cheia, significa que a coleta parou.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (dataset_key) (rate(geo_ingest_jobs_total{outcome=\"completed\"}[5m]))",
+          "legendFormat": "{{dataset_key}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Quanto tempo cada coleta leva",
+      "description": "Tempo típico (95% dos casos) para concluir uma coleta, por base de dados. Serve para perceber quando algo ficou muito mais lento que o normal.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, dataset_key) (rate(geo_ingest_duration_seconds_bucket[15m])))",
+          "legendFormat": "{{dataset_key}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Há quanto tempo o dado não é atualizado",
+      "description": "Idade da última versão publicada de cada base. Uma base mensal com 30 dias é normal; 90 dias indica que a atualização parou.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "geo_dataset_age_seconds",
+          "legendFormat": "{{dataset_key}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "E-mails enviados e com falha",
+      "description": "Mensagens processadas pelo robô de e-mail. Muitas falhas seguidas indicam problema no provedor de envio ou no modelo da mensagem.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(email_messages_total{outcome=\"sent\"}[5m]))",
+          "legendFormat": "enviados"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(email_messages_total{outcome=\"failed\"}[5m]))",
+          "legendFormat": "com falha"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Leitura do banco de dados",
+      "description": "Se o monitoramento consegue ler o banco onde ficam as filas. Vermelho aqui significa que os blocos de fila acima podem estar desatualizados.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "pg_up", "legendFormat": "banco acessível" },
+        {
+          "refId": "B",
+          "expr": "up{job=\"postgres-exporter\"}",
+          "legendFormat": "monitoramento ativo"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
+    }
+  ]
+}

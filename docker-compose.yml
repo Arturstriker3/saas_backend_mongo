@@ -19,6 +19,38 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+  postgis:
+    image: postgis/postgis:18-3.6
+    container_name: saas_postgis
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgis_data:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-saas_geo}
+      - POSTGRES_USER=${POSTGRES_USER:-saas_geo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-saas_geo}
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: saas_postgres_exporter
+    ports:
+      - '9187:9187'
+    environment:
+      - DATA_SOURCE_NAME=postgres://${POSTGRES_USER:-saas_geo}:${POSTGRES_PASSWORD:-saas_geo}@postgis:5432/${POSTGRES_DB:-saas_geo}?sslmode=disable
+      - PG_EXPORTER_EXTEND_QUERY_PATH=/etc/postgres_exporter/queries.yaml
+    volumes:
+      - ./infra/postgres-exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
+    restart: unless-stopped
+    depends_on:
+      postgis:
+        condition: service_healthy
   rabbitmq:
     image: rabbitmq:3-management
     container_name: saas_rabbitmq
@@ -72,6 +104,7 @@ services:
 
 volumes:
   mongo_data:
+  postgis_data:
   rabbitmq_data:
   prometheus_data:
   grafana_data:

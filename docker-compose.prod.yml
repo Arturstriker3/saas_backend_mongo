@@ -12,5 +12,6 @@ services:
       - PORT=3000
       - NODE_ENV=production
       - MONGO_URI=mongodb://host.docker.internal:27017
+      - GEO_DB_URL=postgres://${POSTGRES_USER:-saas_geo}:${POSTGRES_PASSWORD:-saas_geo}@host.docker.internal:5432/${POSTGRES_DB:-saas_geo}
       - RABBITMQ_URL=amqp://guest:guest@host.docker.internal:5672
     restart: unless-stopped

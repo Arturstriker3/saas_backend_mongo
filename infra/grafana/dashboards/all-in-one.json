@@ -1,227 +1,629 @@
 {
   "uid": "all-in-one",
-  "title": "All-in-One Observability",
+  "title": "Visão geral do sistema",
+  "description": "Resumo de saúde do Marcato: se a API está respondendo, com que velocidade, com quantos erros, e como estão as filas de e-mail.",
+  "tags": ["overview", "api", "infra"],
   "timezone": "browser",
-  "schemaVersion": 38,
-  "version": 1,
-  "refresh": "10s",
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
+  "editable": true,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "links": [
+    {
+      "title": "Saúde dos robôs de coleta",
+      "url": "/d/workers",
+      "type": "link",
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
   "panels": [
     {
-      "type": "stat",
-      "title": "API Status",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "up{job=\"api\"}", "refId": "A" }],
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 }
+      "id": 20,
+      "type": "text",
+      "title": "Como ler este painel",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "**Verde** = funcionando normalmente.\n\n**Laranja** = atenção, ainda não é problema.\n\n**Vermelho** = algo parado ou com erro e precisa de ação.\n\nPasse o mouse sobre o **ⓘ** no canto de cada bloco para ver, em uma frase, o que ele mede.\n\n### O que é cada parte\n\n| Nome no gráfico | O que é |\n| --- | --- |\n| API | o programa que responde o site e o aplicativo |\n| Robô de dados do mapa | baixa e atualiza os dados públicos de localização |\n| Robô de e-mails | envia boas-vindas e redefinição de senha |\n| Mensageria | a fila que guarda os e-mails até serem enviados |\n\nEste painel é a **visão geral do sistema**. Para acompanhar a coleta de dados públicos, abra o painel *Saúde dos robôs de coleta* no link do topo."
+      }
     },
     {
+      "id": 1,
       "type": "stat",
-      "title": "Requests / sec",
+      "title": "API respondendo",
+      "description": "Mostra se o programa que responde o site e o aplicativo está no ar. Verde = no ar. Vermelho = parado, e o site fica fora do ar para todos os usuários.",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum(rate(http_requests_total[5m]))", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 2 } },
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 }
+      "targets": [{ "refId": "A", "expr": "up{job=\"api\"}", "legendFormat": "API" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "parada", "index": 0 },
+                "1": { "text": "no ar", "index": 1 }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
     },
     {
+      "id": 2,
       "type": "stat",
-      "title": "5xx / sec",
+      "title": "Pedidos por segundo",
+      "description": "Quantos pedidos o sistema está recebendo por segundo neste momento. Serve para saber o quanto o sistema está sendo usado e para comparar com o horário de pico.",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 2 } },
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 }
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(http_requests_total[5m]))", "legendFormat": "pedidos" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      }
     },
     {
+      "id": 3,
       "type": "stat",
-      "title": "p95 Latency (ms)",
+      "title": "Erros do servidor por segundo",
+      "description": "Pedidos que terminaram com erro do nosso lado. O normal é zero. Qualquer valor acima de zero significa que algum usuário não conseguiu fazer o que queria.",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
+          "refId": "A",
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "com erro"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.1 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Resposta típica (95% dos casos)",
+      "description": "Tempo que o sistema leva para responder. Em 95 de cada 100 pedidos a resposta sai dentro deste tempo. Até 500 ms o usuário sente como rápido; acima de 1 segundo ele sente como lento.",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
           "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-          "refId": "A"
+          "legendFormat": "resposta"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "ms", "decimals": 0 } },
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 500 },
+              { "color": "red", "value": 1000 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value"
+      }
     },
     {
-      "type": "stat",
-      "title": "Event Loop Delay (ms)",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "nodejs_eventloop_lag_seconds * 1000", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "ms", "decimals": 1 } },
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 }
-    },
-    {
-      "type": "stat",
-      "title": "Email Queue Backlog",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rabbitmq_queue_messages_ready{queue=~\"email\\\\..+\"}) + sum(rabbitmq_queue_messages_unacked{queue=~\"email\\\\..+\"})",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 } },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 }
-    },
-    {
+      "id": 5,
       "type": "timeseries",
-      "title": "HTTP Requests by Status",
+      "title": "Pedidos por segundo, por resultado",
+      "description": "Separa o tráfego pelo que aconteceu: pedidos que deram certo, pedidos recusados por estarem errados e erros do nosso lado. Se a linha vermelha aparecer, há problema no sistema.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total[5m])) by (status)",
-          "legendFormat": "{{status}}",
-          "refId": "A"
+          "refId": "A",
+          "expr": "sum(rate(http_requests_total{status=~\"2..\"}[5m]))",
+          "legendFormat": "deu certo"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(http_requests_total{status=~\"3..\"}[5m]))",
+          "legendFormat": "encaminhado"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(rate(http_requests_total{status=~\"4..\"}[5m]))",
+          "legendFormat": "pedido recusado (erro de quem chamou)"
+        },
+        {
+          "refId": "D",
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "erro no servidor (erro nosso)"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "ops" } },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "decimals": 2 },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "pedido recusado (erro de quem chamou)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "erro no servidor (erro nosso)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
     },
     {
+      "id": 6,
       "type": "timeseries",
-      "title": "HTTP Latency p50/p95/p99 (ms)",
+      "title": "Tempo de resposta em milissegundos",
+      "description": "Quanto o sistema demora para responder. A linha do meio representa o usuário comum; as linhas de cima mostram os pedidos mais lentos. Linhas muito distantes uma da outra indicam que alguns pedidos travam.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
+          "refId": "A",
           "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-          "legendFormat": "p50",
-          "refId": "A"
+          "legendFormat": "metade dos pedidos"
         },
         {
+          "refId": "B",
           "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-          "legendFormat": "p95",
-          "refId": "B"
+          "legendFormat": "95% dos pedidos"
         },
         {
+          "refId": "C",
           "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-          "legendFormat": "p99",
-          "refId": "C"
+          "legendFormat": "os 1% mais lentos"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "ms" } },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }
+      "fieldConfig": { "defaults": { "unit": "ms", "decimals": 0 }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
     },
     {
+      "id": 7,
+      "type": "stat",
+      "title": "Quem está enviando dados para este painel",
+      "description": "Cada peça do sistema precisa entregar seus números para o painel funcionar. Vermelho aqui significa que o bloco correspondente mostra informação velha ou vazia.",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 19 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "up{job=\"api\"}", "legendFormat": "API" },
+        { "refId": "B", "expr": "up{job=\"worker-geo\"}", "legendFormat": "robô do mapa" },
+        { "refId": "C", "expr": "up{job=\"worker-email\"}", "legendFormat": "robô de e-mails" },
+        {
+          "refId": "D",
+          "expr": "up{job=\"postgres-exporter\"}",
+          "legendFormat": "leitor do banco geográfico"
+        },
+        { "refId": "E", "expr": "up{job=\"rabbitmq\"}", "legendFormat": "mensageria" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "fora do ar", "index": 0 },
+                "1": { "text": "ligado", "index": 1 }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Memória usada pela API",
+      "description": "Quanta memória o programa que responde o site está ocupando. Uma linha que só sobe, sem cair, indica vazamento de memória e costuma terminar em queda do sistema.",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 19 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_resident_memory_bytes{job=\"api\"}",
+          "legendFormat": "memória"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "decimals": 0 }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 9,
       "type": "gauge",
-      "title": "CPU Usage (%)",
+      "title": "Uso de um núcleo de CPU",
+      "description": "Quanto de um núcleo de processamento a API está usando. Perto de 100% significa que o servidor está no limite e as respostas começam a ficar lentas.",
+      "gridPos": { "h": 8, "w": 4, "x": 16, "y": 19 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "(rate(process_cpu_user_seconds_total[5m]) + rate(process_cpu_system_seconds_total[5m])) * 100",
-          "refId": "A"
+          "refId": "A",
+          "expr": "(rate(process_cpu_user_seconds_total{job=\"api\"}[5m]) + rate(process_cpu_system_seconds_total{job=\"api\"}[5m])) * 100",
+          "legendFormat": "CPU"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "decimals": 1 } },
-      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 12 }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
     },
     {
-      "type": "timeseries",
-      "title": "Process Memory (MB)",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "process_resident_memory_bytes", "legendFormat": "rss", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "bytes", "decimals": 0 } },
-      "gridPos": { "h": 6, "w": 9, "x": 6, "y": 12 }
-    },
-    {
+      "id": 10,
       "type": "gauge",
-      "title": "Heap Usage (%)",
+      "title": "Memória interna em uso",
+      "description": "Quanto da memória reservada o programa está realmente ocupando. Acima de 90% o sistema começa a descartar trabalho e a ficar lento.",
+      "gridPos": { "h": 8, "w": 4, "x": 20, "y": 19 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "(nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes) * 100",
-          "refId": "A"
+          "refId": "A",
+          "expr": "(nodejs_heap_size_used_bytes{job=\"api\"} / nodejs_heap_size_total_bytes{job=\"api\"}) * 100",
+          "legendFormat": "memória interna"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "decimals": 1 } },
-      "gridPos": { "h": 6, "w": 9, "x": 15, "y": 12 }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 75 },
+              { "color": "red", "value": 90 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
     },
     {
+      "id": 11,
       "type": "timeseries",
-      "title": "Event Loop Delay (ms)",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "expr": "nodejs_eventloop_lag_seconds * 1000", "legendFormat": "lag", "refId": "A" }
-      ],
-      "fieldConfig": { "defaults": { "unit": "ms" } },
-      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 18 }
-    },
-    {
-      "type": "timeseries",
-      "title": "GC p95 (ms)",
+      "title": "Atraso do processo (ms)",
+      "description": "Quanto tempo o programa espera antes de conseguir atender o próximo pedido. Picos longos aqui explicam lentidão mesmo com servidor folgado.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(nodejs_gc_duration_seconds_bucket[5m])) by (le)) * 1000",
-          "legendFormat": "p95",
-          "refId": "A"
+          "refId": "A",
+          "expr": "nodejs_eventloop_lag_seconds{job=\"api\"} * 1000",
+          "legendFormat": "atraso"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "ms" } },
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 18 }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 100 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
     },
     {
-      "type": "bargauge",
-      "title": "Email Queue Messages",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rabbitmq_queue_messages{queue=~\"email\\\\..+\"}) by (queue)",
-          "legendFormat": "{{queue}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 } },
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 24 }
-    },
-    {
-      "type": "bargauge",
-      "title": "Email Queue Consumers",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rabbitmq_queue_consumers{queue=~\"email\\\\..+\"}) by (queue)",
-          "legendFormat": "{{queue}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 } },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 24 }
-    },
-    {
+      "id": 12,
       "type": "piechart",
-      "title": "HTTP Status Share",
+      "title": "Distribuição dos pedidos por resultado",
+      "description": "Como o tráfego se divide entre pedidos que deram certo, recusas e erros. A fatia vermelha deve ser sempre a menor possível.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total[5m])) by (status)",
-          "legendFormat": "{{status}}",
-          "refId": "A"
-        }
-      ],
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 31 }
-    },
-    {
-      "type": "timeseries",
-      "title": "Queue Throughput (messages/sec)",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rate(rabbitmq_channel_messages_published_total[5m]))",
-          "legendFormat": "published",
-          "refId": "A"
+          "refId": "A",
+          "expr": "sum(rate(http_requests_total{status=~\"2..\"}[5m]))",
+          "legendFormat": "deu certo"
         },
         {
-          "expr": "sum(rate(rabbitmq_channel_messages_acked_total[5m]))",
-          "legendFormat": "acked",
-          "refId": "B"
+          "refId": "B",
+          "expr": "sum(rate(http_requests_total{status=~\"3..\"}[5m]))",
+          "legendFormat": "encaminhado"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(rate(http_requests_total{status=~\"4..\"}[5m]))",
+          "legendFormat": "pedido recusado (erro de quem chamou)"
+        },
+        {
+          "refId": "D",
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "erro no servidor (erro nosso)"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "ops" } },
-      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 31 }
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "decimals": 2 },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "pedido recusado (erro de quem chamou)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "erro no servidor (erro nosso)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "right", "showLegend": true },
+        "pieType": "pie",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "E-mails esperando na fila",
+      "description": "Quantos e-mails estão prontos esperando o robô de envio. Se este número só cresce, os usuários não estão recebendo boas-vindas nem redefinição de senha.",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rabbitmq_queue_messages_ready{queue=~\"email.*\"})",
+          "legendFormat": "esperando"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 50 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "E-mails em processamento",
+      "description": "E-mails que o robô pegou e está enviando neste instante. Ficar alto por muito tempo significa envio travado.",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rabbitmq_queue_messages_unacked{queue=~\"email.*\"})",
+          "legendFormat": "em processamento"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "Robôs de e-mail conectados",
+      "description": "Quantos programas estão lendo a fila de e-mails. Zero com e-mails esperando significa que ninguém vai enviá-los.",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rabbitmq_queue_consumers{queue=~\"email.*\"})",
+          "legendFormat": "conectados"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "E-mails na fila (todos)",
+      "description": "Soma de tudo que está na fila de e-mail: esperando, em processamento e aguardando confirmação. É o retrato completo da fila.",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rabbitmq_queue_messages{queue=~\"email.*\"})",
+          "legendFormat": "total na fila"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 17,
+      "type": "bargauge",
+      "title": "Mensagens por fila de e-mail",
+      "description": "Quantas mensagens estão paradas em cada tipo de e-mail. Ajuda a ver se o problema é só em um tipo, como a redefinição de senha.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rabbitmq_queue_messages{queue=\"email.welcome\"})",
+          "legendFormat": "boas-vindas"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rabbitmq_queue_messages{queue=\"email.password_reset\"})",
+          "legendFormat": "redefinição de senha"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Mensagens que entram e que são concluídas por segundo",
+      "description": "Ritmo com que novas mensagens entram na fila e com que o robô confirma a conclusão do envio. As duas linhas devem andar juntas; se a de entrada ficar acima, a fila vai crescer.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(rabbitmq_queue_messages_published_total{queue=~\"email.*\"}[5m]))",
+          "legendFormat": "entraram na fila"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(rabbitmq_channel_messages_acked_total[5m]))",
+          "legendFormat": "concluíram o envio"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
     }
   ]
 }

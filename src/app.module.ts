@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { GeoModule } from './modules/geo/geo.module';
 import { DatabaseModule } from './common/database/database.module';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { loadEnv } from './common/config/env';
@@ -15,6 +16,7 @@ const env = loadEnv();
     MetricsModule,
     UserModule,
     AuthModule,
+    GeoModule,
     ThrottlerModule.forRoot({
       throttlers: [
         {

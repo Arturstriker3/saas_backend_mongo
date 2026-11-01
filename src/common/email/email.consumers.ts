@@ -2,6 +2,7 @@ import { Inject, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Channel, ConsumeMessage } from 'amqplib';
 import { loadEnv } from '../config/env';
 import { EmailService } from './email.service';
+import { EmailMetrics } from './email.metrics';
 import { RabbitMQConnection, RABBITMQ_CONNECTION } from '../messaging/rabbitmq.connection';
 import { DomainEvent } from '../messaging/events';
 
@@ -11,6 +12,7 @@ export class EmailConsumers implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(RABBITMQ_CONNECTION) private readonly conn: RabbitMQConnection,
     private readonly email: EmailService,
+    private readonly metrics: EmailMetrics,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -49,21 +51,28 @@ export class EmailConsumers implements OnModuleInit, OnModuleDestroy {
     const env = loadEnv();
     await channel.assertQueue(queueName, { durable: true });
     await channel.bindQueue(queueName, env.RABBITMQ_EXCHANGE, queueName);
-    await channel.consume(queueName, async (msg) => this.handleMessage(channel, msg, handler));
+    await channel.consume(queueName, async (msg) =>
+      this.handleMessage(channel, queueName, msg, handler),
+    );
   }
 
   private async handleMessage(
     channel: Channel,
+    queueName: string,
     msg: ConsumeMessage | null,
     handler: (event: DomainEvent) => Promise<void>,
   ): Promise<void> {
     if (!msg) return;
+
+    const startedAt = Date.now();
     try {
       const event = JSON.parse(msg.content.toString()) as DomainEvent;
       await handler(event);
       channel.ack(msg);
+      this.metrics.record(queueName, 'sent', (Date.now() - startedAt) / 1000);
     } catch {
       channel.nack(msg, false, false);
+      this.metrics.record(queueName, 'failed', (Date.now() - startedAt) / 1000);
     }
   }
 }
