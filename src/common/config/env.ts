@@ -6,6 +6,7 @@ dotenv.config();
 
 const EnvSchema = z.object({
   APP_NAME: z.string().default('Plataform'),
+  CLIENT_URL: z.string().default('http://localhost:3000'),
   NODE_ENV: z.string().default('development'),
   PORT: z.string().default('3000'),
   CORS_ALLOWED_ORIGINS: z.string().default('*'),

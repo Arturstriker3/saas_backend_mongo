@@ -8,8 +8,19 @@ export class EmailService {
 
   async sendPasswordReset(to: string, token: string, language: EmailLanguage): Promise<void> {
     const env = loadEnv();
-    const content = this.getPasswordResetContent(token, language, env.APP_NAME);
+    const expiresInMinutes = Math.max(Math.round(parseInt(env.PASSWORD_RESET_TTL, 10) / 60), 1);
+    const content = this.getPasswordResetContent(
+      this.buildPasswordResetUrl(env.CLIENT_URL, token),
+      language,
+      env.APP_NAME,
+      expiresInMinutes,
+    );
     await this.sendEmail(env.RESEND_FROM, to, content.subject, content.text);
+  }
+
+  private buildPasswordResetUrl(clientUrl: string, token: string): string {
+    const baseUrl = clientUrl.replace(/\/+$/, '');
+    return `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
   }
 
   async sendWelcome(to: string, name: string, language: EmailLanguage): Promise<void> {
@@ -34,9 +45,10 @@ export class EmailService {
   }
 
   private getPasswordResetContent(
-    token: string,
+    resetUrl: string,
     language: EmailLanguage,
     appName: string,
+    expiresInMinutes: number,
   ): { subject: string; text: string } {
     if (language === 'portuguese') {
       return {
@@ -44,8 +56,8 @@ export class EmailService {
         text: `
           Você solicitou a redefinição da sua senha.
 
-          Use o link abaixo para continuar:
-          ${token}
+          Use o link abaixo para criar uma nova senha. Ele expira em ${expiresInMinutes} minutos:
+          ${resetUrl}
 
           Se você não fez essa solicitação, pode ignorar este email.
         `,
@@ -58,8 +70,8 @@ export class EmailService {
         text: `
           Has solicitado restablecer tu contraseña.
 
-          Usa el siguiente enlace para continuar:
-          ${token}
+          Usa el enlace de abajo para crear una contraseña nueva. Expira en ${expiresInMinutes} minutos:
+          ${resetUrl}
 
           Si no realizaste esta solicitud, puedes ignorar este correo.
         `,
@@ -71,8 +83,8 @@ export class EmailService {
       text: `
         You requested to reset your password.
 
-        Use the link below to continue:
-        ${token}
+        Use the link below to set a new password. It expires in ${expiresInMinutes} minutes:
+        ${resetUrl}
 
         If you didn’t request this, you can safely ignore this email.
       `,

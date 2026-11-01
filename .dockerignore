@@ -11,6 +11,6 @@ coverage
 **/*.test.ts
 infra
 README.md
-ARCHITECTURE.md
+docs
 docker-compose.yml
 docker-compose.prod.yml
