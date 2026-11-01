@@ -1,11 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 import { splitCsvLine } from '../csv/csv.util';
 import {
+  COMPANY_FIELD_COUNT,
   ESTABLISHMENT_FIELD_COUNT,
   toCnaeInput,
+  toCompanyInput,
   toEstablishmentInput,
   toIbgeMunicipalityCode,
 } from './rfb-cnpj.mapper';
+
+/** Real line from `Empresas9.zip` (2026-10), every field quoted. */
+const REAL_COMPANY_LINE =
+  '"36627969";"VINICIUS ESMERELI 23381366831";"2135";"50";"2000,00";"01";""';
 
 /** Real line from `Estabelecimentos9.zip` (2026-10), every field quoted. */
 const REAL_ESTABLISHMENT_LINE =
@@ -47,6 +53,11 @@ describe('toEstablishmentInput', () => {
       cnaeCode: '4721102',
       registrationStatus: 2,
       openedOn: '2010-05-15',
+      streetType: 'RUA',
+      street: 'DA PRAIA',
+      streetNumber: '100',
+      complement: null,
+      neighborhood: 'CENTRO',
       cep: '49010000',
       uf: 'SE',
       municipalityCode: '2800308',
@@ -62,6 +73,11 @@ describe('toEstablishmentInput', () => {
       cnaeCode: '4712100',
       registrationStatus: 8,
       openedOn: '1990-08-21',
+      streetType: null,
+      street: 'ALA  BENEVENTO',
+      streetNumber: '245',
+      complement: 'L 4 PARQUE J CESAR',
+      neighborhood: 'PITUBA',
       cep: '41830595',
       uf: 'BA',
       municipalityCode: '2938496',
@@ -123,6 +139,42 @@ describe('toIbgeMunicipalityCode', () => {
 
   test('returns null for an unknown UF', () => {
     expect(toIbgeMunicipalityCode('ZZ', '0030')).toBeNull();
+  });
+});
+
+describe('toCompanyInput', () => {
+  test('maps a real, fully quoted line from the source', () => {
+    expect(toCompanyInput(splitCsvLine(REAL_COMPANY_LINE))).toEqual({
+      companyCode: '36627969',
+      legalName: 'VINICIUS ESMERELI 23381366831',
+      legalNatureCode: '2135',
+      capitalSocial: 2000,
+      sizeCode: '01',
+    });
+  });
+
+  test('reads the amount with thousand separators', () => {
+    const fields = new Array<string>(COMPANY_FIELD_COUNT).fill('');
+    Object.assign(fields, { 0: '12345678', 1: 'ACME LTDA', 4: '1.234.567,89', 5: '05' });
+
+    expect(toCompanyInput(fields)?.capitalSocial).toBe(1234567.89);
+  });
+
+  test('falls back to the code when the name is missing and keeps unknown codes null', () => {
+    const fields = new Array<string>(COMPANY_FIELD_COUNT).fill('');
+    Object.assign(fields, { 0: '12345678' });
+
+    expect(toCompanyInput(fields)).toEqual({
+      companyCode: '12345678',
+      legalName: '12345678',
+      legalNatureCode: null,
+      capitalSocial: null,
+      sizeCode: null,
+    });
+  });
+
+  test('rejects a line whose layout drifted', () => {
+    expect(() => toCompanyInput(['12345678', 'ACME LTDA'])).toThrow('layout changed');
   });
 });
 

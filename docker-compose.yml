@@ -2,6 +2,7 @@ services:
   mongo:
     image: mongo:7
     container_name: saas_mongo
+    mem_limit: 1g
     ports:
       - '27017:27017'
     volumes:
@@ -22,6 +23,9 @@ services:
   postgis:
     image: postgis/postgis:18-3.6
     container_name: saas_postgis
+    # Headroom for the ingestion sorts and index builds (it peaks around 3.5 GiB
+    # while loading the CNPJ parts); below this the bulk upserts run out of memory.
+    mem_limit: 4g
     ports:
       - '5432:5432'
     volumes:
@@ -40,6 +44,7 @@ services:
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.20.1
     container_name: saas_postgres_exporter
+    mem_limit: 128m
     ports:
       - '9187:9187'
     environment:
@@ -54,6 +59,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: saas_rabbitmq
+    mem_limit: 512m
     ports:
       - '5672:5672'
       - '15672:15672'
@@ -73,6 +79,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.52.0
     container_name: saas_prometheus
+    mem_limit: 512m
     ports:
       - '9090:9090'
     command:
@@ -91,6 +98,7 @@ services:
   grafana:
     image: grafana/grafana:11.4.0
     container_name: saas_grafana
+    mem_limit: 512m
     ports:
       - '3001:3000'
     volumes:

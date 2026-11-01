@@ -249,25 +249,31 @@ Write rules:
 
 ### Establishments
 
-`rfb_cnpj` publishes the monthly CNPJ registry: `geo.establishment` (one row per establishment) and `geo.cnae` (the taxonomy that makes the code readable), both carrying the same `dataset_version_id`.
+`rfb_cnpj` publishes the monthly CNPJ registry in three tables that share the same `dataset_version_id`: `geo.establishment` (one row per establishment), `geo.company` (one row per CNPJ root, with the legal name) and `geo.cnae` (the taxonomy that makes the code readable).
 
-| Column                                   | Source                                     |
-| ---------------------------------------- | ------------------------------------------ |
-| `cnpj`, `cnpj_basico`, `is_headquarters` | `Estabelecimentos{n}` (matriz/filial flag) |
-| `trade_name`                             | nome fantasia                              |
-| `cnae_principal`                         | CNAE fiscal principal                      |
-| `registration_status`, `opened_on`       | situação cadastral, data de início         |
-| `cep`, `uf`, `municipality_code`         | endereço                                   |
-| `geo.cnae.code`, `geo.cnae.description`  | `Cnaes.zip`                                |
+| Column                                                                 | Source                                     |
+| ---------------------------------------------------------------------- | ------------------------------------------ |
+| `cnpj`, `cnpj_basico`, `is_headquarters`                               | `Estabelecimentos{n}` (matriz/filial flag) |
+| `trade_name`                                                           | nome fantasia                              |
+| `cnae_principal`                                                       | CNAE fiscal principal                      |
+| `registration_status`, `opened_on`                                     | situação cadastral, data de início         |
+| `cep`, `uf`, `municipality_code`                                       | endereço                                   |
+| `street_type`, `street`, `street_number`, `complement`, `neighborhood` | endereço                                   |
+| `geo.company.legal_name`                                               | `Empresas{n}` — razão social               |
+| `geo.company.legal_nature_code`, `size_code`, `capital_social`         | `Empresas{n}`                              |
+| `geo.cnae.code`, `geo.cnae.description`                                | `Cnaes.zip`                                |
 
 - The reference is the publication month (`YYYY-MM`); the source keeps one folder per month and `discoverReference()` lists them.
 - The files are **not** served as an HTML directory: the Receita Federal publishes them through a Nextcloud public share, so discovery is a WebDAV `PROPFIND` and every request carries the share token as the basic-auth user (`RFB_CNPJ_SHARE_TOKEN`). A new share link means a new token.
-- **A month folder is published before every archive is uploaded.** Discovery refuses a month that does not list `Cnaes.zip` plus all ten `Estabelecimentos{0..9}.zip`, and each part must reach a row floor, so a truncated upload never becomes a version.
-- Entries inside the archives carry no `.csv` extension (`K3241.K03200Y9.D61010.ESTABELE`, `F.K03200$Z.D61010.CNAECSV`); a part must extract exactly one data file.
+- **A month folder is published before every archive is uploaded.** Discovery refuses a month that does not list `Cnaes.zip` plus all ten `Estabelecimentos{0..9}.zip` and all ten `Empresas{0..9}.zip`, and each part must reach a row floor, so a truncated upload never becomes a version.
+- Entries inside the archives carry no `.csv` extension (`K3241.K03200Y9.D61010.ESTABELE`, `K3241.K03200Y9.D61010.EMPRECSV`, `F.K03200$Z.D61010.CNAECSV`); a part must extract exactly one data file.
+- `trade_name` is optional in the source: in the 2026-10 edition ~69% of the establishments carry none. The official name is the razão social, so any listing joins `geo.company` by `cnpj_basico`; the establishment row alone is not identifiable by people.
+- `registration_status` is the situação cadastral: `01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada. Market queries filter `= 2`; the rest is company history.
+- `size_code` is the porte: `00` not informed, `01` MEI, `03` EPP, `05` others. `capital_social` is published with a comma decimal separator (`2.000,00`) and is stored as numeric.
 - `municipality_code` is derived, not joined: IBGE code = UF code (2) + TOM code (4) + check digit (alternate weights 1/2, ten's complement). Establishments abroad (`uf = EX`) and unknown UFs stay `NULL`, and more than 5% unresolved aborts the run.
-- Address, phone and e-mail columns are deliberately not stored: the product asks what exists and what it does per municipality, not the street of each store.
+- The address is kept without the contact data: street, number, complement and neighborhood are what a geocoder needs, while phone, e-mail, sócios and the secondary CNAE stay out. The CNPJ open data carries no latitude/longitude, so a point has to be derived from the address or the CEP in a later step.
 - Files are `latin1`, semicolon separated and fully quoted; they are read as a stream part by part, and each part is deleted as soon as it is read. The largest part is ~2.3 GB compressed and ~7 GB extracted, so the worker needs that much free disk under `GEO_RAW_DIR`.
-- Row floors: 45M–90M establishments per version, 1 200–1 500 CNAEs, minimum 100 000 rows per part. A full run downloads roughly 13 GB.
+- Row floors: 45M–90M establishments, 40M–95M companies and 1 200–1 500 CNAEs per version, minimum 100 000 rows per part. A full run downloads roughly 18 GB.
 
 ## Serving rules
 

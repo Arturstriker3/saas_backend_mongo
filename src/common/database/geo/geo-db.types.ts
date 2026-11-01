@@ -114,9 +114,24 @@ export interface EstablishmentTable {
   cnae_principal: string | null;
   registration_status: number | null;
   opened_on: ColumnType<string | null, string | null, string | null>;
+  street_type: string | null;
+  street: string | null;
+  street_number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
   cep: string | null;
   uf: string | null;
   municipality_code: string | null;
+  dataset_version_id: string | null;
+  updated_at: Timestamp;
+}
+
+export interface CompanyTable {
+  cnpj_basico: string;
+  legal_name: string;
+  legal_nature_code: string | null;
+  size_code: string | null;
+  capital_social: ColumnType<string | null, string | number | null, string | number | null>;
   dataset_version_id: string | null;
   updated_at: Timestamp;
 }
@@ -131,4 +146,5 @@ export interface GeoDB {
   'geo.sector_indicator': SectorIndicatorTable;
   'geo.cnae': CnaeTable;
   'geo.establishment': EstablishmentTable;
+  'geo.company': CompanyTable;
 }

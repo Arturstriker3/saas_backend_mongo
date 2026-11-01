@@ -77,10 +77,7 @@ export class IngestionScheduler implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Prefers the reference published at the source, falling back to the last used one. */
-  private async resolveReference(
-    adapter: DatasetAdapter,
-    schedule: DueSchedule,
-  ): Promise<string> {
+  private async resolveReference(adapter: DatasetAdapter, schedule: DueSchedule): Promise<string> {
     const fallback = schedule.lastReference ?? adapter.defaultReference;
     if (!adapter.discoverReference) return fallback;
 

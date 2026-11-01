@@ -2,24 +2,26 @@ import { Injectable, Logger } from '@nestjs/common';
 import { mkdir, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { loadEnv } from '../../../../common/config/env';
-import type { CnaeInput, EstablishmentInput } from '../../domain/establishment.types';
+import type { CnaeInput, CompanyInput, EstablishmentInput } from '../../domain/establishment.types';
 import { downloadTo, extractArchive, readLines } from '../archive/geo-zip.util';
-import { splitCsvLine } from '../csv/csv.util';
-import { toCnaeInput, toEstablishmentInput } from './rfb-cnpj.mapper';
+import { joinQuotedLines, splitCsvLine } from '../csv/csv.util';
+import { toCnaeInput, toCompanyInput, toEstablishmentInput } from './rfb-cnpj.mapper';
 
 const RFB_CNPJ_HOST = 'https://arquivos.receitafederal.gov.br';
 
 /** The Receita Federal publishes the open CNPJ files as a Nextcloud public share. */
 export const RFB_CNPJ_WEBDAV_URL = `${RFB_CNPJ_HOST}/public.php/webdav`;
 
-/** The source ships the establishments split in ten archives. */
+/** The source ships the establishments and the companies split in ten archives each. */
 export const ESTABLISHMENT_PARTS = 10;
+export const COMPANY_PARTS = 10;
 
 const MONTH_DIRECTORY = /^(\d{4}-\d{2})$/;
 const CNAE_FILE = /^cnaes\.zip$/i;
 const ESTABLISHMENT_FILE = /^estabelecimentos(\d+)\.zip$/i;
+const COMPANY_FILE = /^empresas(\d+)\.zip$/i;
 /** RFB data files carry no extension: `K3241.K03200Y9.D61010.ESTABELE`. */
-const DATA_ENTRY = /\.(estabele|cnaecsv)$/i;
+const DATA_ENTRY = /\.(estabele|cnaecsv|emprecsv)$/i;
 const HREF = /<d:href>([^<]+)<\/d:href>/g;
 const LATIN1 = 'latin1';
 
@@ -29,6 +31,8 @@ export interface RfbCnpjSourceSet {
   cnaeUrl: string;
   /** Establishment archives ordered by part number. */
   establishmentUrls: string[];
+  /** Company archives ordered by part number. */
+  companyUrls: string[];
 }
 
 interface ShareEntry {
@@ -55,39 +59,88 @@ export class RfbCnpjClient {
     const cnae = entries.find((entry) => CNAE_FILE.test(entry.name));
     if (!cnae) throw new Error(`RFB ${reference} has no Cnaes.zip; the month is incomplete`);
 
-    const parts = entries
-      .map((entry) => ({ index: partIndex(entry.name), url: entry.url }))
-      .filter((part): part is { index: number; url: string } => part.index !== null)
-      .sort((left, right) => left.index - right.index);
+    const establishmentUrls = this.collectParts(
+      entries,
+      ESTABLISHMENT_FILE,
+      ESTABLISHMENT_PARTS,
+      `${reference} estabelecimentos`,
+    );
+    const companyUrls = this.collectParts(
+      entries,
+      COMPANY_FILE,
+      COMPANY_PARTS,
+      `${reference} empresas`,
+    );
 
-    if (parts.length !== ESTABLISHMENT_PARTS) {
-      throw new Error(
-        `RFB ${reference} has ${parts.length} establishment archive(s), ` +
-          `expected ${ESTABLISHMENT_PARTS}; the month is incomplete`,
-      );
-    }
+    this.logger.log(
+      `CNPJ reference ${reference}: ${establishmentUrls.length} establishment and ` +
+        `${companyUrls.length} company archives`,
+    );
 
-    this.logger.log(`CNPJ reference ${reference}: ${parts.length} establishment archives`);
-
-    return { reference, cnaeUrl: cnae.url, establishmentUrls: parts.map((part) => part.url) };
+    return { reference, cnaeUrl: cnae.url, establishmentUrls, companyUrls };
   }
 
   async *readCnaes(url: string, workDir: string): AsyncGenerator<CnaeInput> {
-    for await (const line of this.csvLines(url, workDir)) {
-      if (line.trim() === '') continue;
+    for await (const record of joinQuotedLines(this.csvLines(url, workDir))) {
+      if (record.trim() === '') continue;
 
-      const cnae = toCnaeInput(splitCsvLine(line));
+      const cnae = this.mapRecord(url, record, toCnaeInput);
       if (cnae) yield cnae;
     }
   }
 
-  async *readEstablishments(url: string, workDir: string): AsyncGenerator<EstablishmentInput> {
-    for await (const line of this.csvLines(url, workDir)) {
-      if (line.trim() === '') continue;
+  async *readCompanies(url: string, workDir: string): AsyncGenerator<CompanyInput> {
+    for await (const record of joinQuotedLines(this.csvLines(url, workDir))) {
+      if (record.trim() === '') continue;
 
-      const establishment = toEstablishmentInput(splitCsvLine(line));
+      const company = this.mapRecord(url, record, toCompanyInput);
+      if (company) yield company;
+    }
+  }
+
+  async *readEstablishments(url: string, workDir: string): AsyncGenerator<EstablishmentInput> {
+    for await (const record of joinQuotedLines(this.csvLines(url, workDir))) {
+      if (record.trim() === '') continue;
+
+      const establishment = this.mapRecord(url, record, toEstablishmentInput);
       if (establishment) yield establishment;
     }
+  }
+
+  /** Turns a layout rejection into a message that shows the offending record. */
+  private mapRecord<T>(
+    url: string,
+    record: string,
+    mapper: (fields: string[]) => T | null,
+  ): T | null {
+    try {
+      return mapper(splitCsvLine(record));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`${message} (${basename(url)}): "${record.slice(0, 140)}"`);
+    }
+  }
+
+  /** Collects the numbered archives of one part kind, ordered by part number. */
+  private collectParts(
+    entries: ShareEntry[],
+    pattern: RegExp,
+    expected: number,
+    label: string,
+  ): string[] {
+    const parts = entries
+      .map((entry) => ({ index: partIndex(pattern, entry.name), url: entry.url }))
+      .filter((part): part is { index: number; url: string } => part.index !== null)
+      .sort((left, right) => left.index - right.index);
+
+    if (parts.length !== expected) {
+      throw new Error(
+        `RFB ${label} has ${parts.length} archive(s), expected ${expected}; ` +
+          'the month is incomplete',
+      );
+    }
+
+    return parts.map((part) => part.url);
   }
 
   private async *csvLines(url: string, workDir: string): AsyncGenerator<string> {
@@ -167,8 +220,8 @@ export class RfbCnpjClient {
   }
 }
 
-function partIndex(name: string): number | null {
-  const match = ESTABLISHMENT_FILE.exec(name);
+function partIndex(pattern: RegExp, name: string): number | null {
+  const match = pattern.exec(name);
   if (!match) return null;
 
   const index = Number.parseInt(match[1], 10);

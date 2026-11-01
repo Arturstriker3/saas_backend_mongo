@@ -5,6 +5,8 @@ import { migration003ShapefileDatasets } from './003_shapefile_datasets';
 import { migration004ScheduleRunner } from './004_schedule_runner';
 import { migration005CensoIndicators } from './005_censo_indicators';
 import { migration006Establishments } from './006_establishments';
+import { migration007Companies } from './007_companies';
+import { migration008EstablishmentAddress } from './008_establishment_address';
 
 export const geoMigrations: Record<string, Migration> = {
   '001_initial': migration001Initial,
@@ -13,4 +15,6 @@ export const geoMigrations: Record<string, Migration> = {
   '004_schedule_runner': migration004ScheduleRunner,
   '005_censo_indicators': migration005CensoIndicators,
   '006_establishments': migration006Establishments,
+  '007_companies': migration007Companies,
+  '008_establishment_address': migration008EstablishmentAddress,
 };

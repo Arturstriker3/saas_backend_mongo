@@ -1,12 +1,16 @@
-import type { CnaeInput, EstablishmentInput } from '../../domain/establishment.types';
+import type { CnaeInput, CompanyInput, EstablishmentInput } from '../../domain/establishment.types';
 
 /** The RFB `Estabelecimentos` layout has 30 columns and no header. */
 export const ESTABLISHMENT_FIELD_COUNT = 30;
+
+/** The RFB `Empresas` layout has 7 columns and no header. */
+export const COMPANY_FIELD_COUNT = 7;
 
 const CNAE_FIELD_COUNT = 2;
 const DIGITS_ONLY = /^\d+$/;
 const CNAE_CODE = /^\d{7}$/;
 const CNPJ_CODE = /^\d{14}$/;
+const COMPANY_CODE = /^\d{8}$/;
 const IBGE_UF_CODE: Record<string, string> = {
   RO: '11',
   AC: '12',
@@ -88,9 +92,42 @@ export function toEstablishmentInput(fields: string[]): EstablishmentInput | nul
     cnaeCode: toCnaeCode(fields[11]),
     registrationStatus: toRegistrationStatus(fields[5]),
     openedOn: toIsoDate(fields[10]),
+    streetType: toText(fields[13]),
+    street: toText(fields[14]),
+    streetNumber: toText(fields[15]),
+    complement: toText(fields[16]),
+    neighborhood: toText(fields[17]),
     cep: toCep(fields[18]),
     uf,
     municipalityCode: uf ? toIbgeMunicipalityCode(uf, fields[20].trim()) : null,
+  };
+}
+
+/**
+ * Maps an `Empresas{n}.csv` line into the company row.
+ * @param fields - Semicolon separated fields of the RFB layout.
+ * @returns The company, or null for a blank line.
+ */
+export function toCompanyInput(fields: string[]): CompanyInput | null {
+  if (fields.length < COMPANY_FIELD_COUNT) {
+    throw new Error(
+      `RFB empresas layout changed; expected ${COMPANY_FIELD_COUNT} fields, ` +
+        `received ${fields.length}`,
+    );
+  }
+
+  const companyCode = fields[0].trim();
+  if (companyCode === '') return null;
+  if (!COMPANY_CODE.test(companyCode)) {
+    throw new Error(`RFB empresas has an unexpected company code: "${companyCode}"`);
+  }
+
+  return {
+    companyCode,
+    legalName: toText(fields[1]) ?? companyCode,
+    legalNatureCode: toCode(fields[2], 4),
+    capitalSocial: toMoney(fields[4]),
+    sizeCode: toCode(fields[5], 2),
   };
 }
 
@@ -140,6 +177,24 @@ function toCnaeCode(raw: string | undefined): string | null {
   const value = (raw ?? '').trim();
   if (value === '' || value === '0000000' || !DIGITS_ONLY.test(value)) return null;
   return value;
+}
+
+/** A numeric code of fixed width, used by natureza jurídica and porte. */
+function toCode(raw: string | undefined, width: number): string | null {
+  const value = (raw ?? '').trim();
+  if (value.length !== width || !DIGITS_ONLY.test(value)) return null;
+  return value;
+}
+
+/** The RFB publishes money with a comma decimal separator, e.g. `2.000,00`. */
+function toMoney(raw: string | undefined): number | null {
+  const value = (raw ?? '').trim();
+  if (value === '') return null;
+
+  const normalized = value.includes(',') ? value.replace(/\./g, '').replace(',', '.') : value;
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function toRegistrationStatus(raw: string | undefined): number | null {
