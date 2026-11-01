@@ -157,7 +157,7 @@ Rules:
 - Atomic: a version is visible only after `publish`. Failed runs leave `staging` tables and no `geo` rows.
 - Recoverable: a crashed run is recovered by the heartbeat reaper, retried with backoff, then parked as `failed`. `staging` is truncated at the start of every run.
 - Not resumable mid-dataset: a recovered job re-reads the dataset from the beginning, reusing the `staging` version. Recovery costs time, never correctness.
-- Bounded: raw files are removed after `GEO_RAW_RETENTION_DAYS`; only the checksum is retained.
+- Bounded: each part is deleted as soon as it is read, and a run starts by wiping its reference directory, so a killed run cannot leave archives piling up. `GEO_RAW_RETENTION_DAYS` is reserved for a future cleaner of old references; nothing reads it yet.
 - Observable: see Observability.
 - Dependency order matters: malhas → censo → cnefe → cnpj → rest. A dataset declares `dependsOn` and is skipped while a dependency is missing.
 

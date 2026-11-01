@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { loadEnv } from '../../../../common/config/env';
 import { toSearchName } from '../../../../common/text/search-name';
@@ -43,6 +44,8 @@ export abstract class ShapefileRegionAdapter implements DatasetAdapter {
 
   async ingest(reference: string): Promise<void> {
     const baseDir = join(loadEnv().GEO_RAW_DIR, this.datasetKey, reference);
+    // A killed run leaves its archive behind and nothing is resumed, so start clean.
+    await rm(baseDir, { recursive: true, force: true });
     const checksum = createChecksumAccumulator();
     const stats: ChunkStats = { inserted: 0, updated: 0 };
     let buffer: RegionInput[] = [];
