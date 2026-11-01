@@ -32,6 +32,7 @@ Env vars:
 - `GEO_DB_MAX_POOL_SIZE`, `GEO_DB_MIN_POOL_SIZE`, `GEO_DB_CONNECT_TIMEOUT_MS`, `GEO_DB_STATEMENT_TIMEOUT_MS`
 - `GEO_RAW_DIR`, `GEO_RAW_RETENTION_DAYS`, `GEO_INGEST_CONCURRENCY`
 - `GEO_JOB_STALE_MINUTES`, `GEO_JOB_RETENTION_DAYS`, `GEO_SCHEDULER_TICK_SECONDS`
+- `RFB_CNPJ_SHARE_TOKEN` — token of the Receita Federal public share, used as the WebDAV user. It has no expiry date: it stays valid while the Receita Federal keeps the share, and only dies if the link is revoked or replaced (then a new token is needed). It is a public read-only credential, not a secret to be rotated on a schedule.
 - `WORKER_METRICS_ENABLED`, `GEO_WORKER_METRICS_PORT`, `EMAIL_WORKER_METRICS_PORT`
 
 `GEO_INGEST_CONCURRENCY` is `1` per source. Concurrent swaps of the same dataset are unsafe.
@@ -234,11 +235,11 @@ Write rules:
 
 `geo.sector_indicator` holds the Censo 2022 attributes, one row per census tract, joined to `geo.region` by `sector_code` (no foreign key: `region` is keyed by `(level, ibge_code)`).
 
-| Column                                                        | Source            |
-| ------------------------------------------------------------- | ----------------- |
-| `population`, `households`, `occupied_households`, `average_household_size` | agregados básicos |
-| `responsible_persons`, `average_income`, `median_income`       | renda do responsável |
-| `urban`                                                       | básicos (situação) |
+| Column                                                                      | Source               |
+| --------------------------------------------------------------------------- | -------------------- |
+| `population`, `households`, `occupied_households`, `average_household_size` | agregados básicos    |
+| `responsible_persons`, `average_income`, `median_income`                    | renda do responsável |
+| `urban`                                                                     | básicos (situação)   |
 
 - The source publishes one ZIP with a dated name per revision (`..._20260520.zip`), so the **reference is the revision date** and each republication becomes a comparable version. `discoverReference()` reads the directory listing, and the scheduler uses it instead of the last reference.
 - Both files are read as a stream of lines and written in batches of 5 000; nothing is buffered per dataset.
@@ -250,14 +251,14 @@ Write rules:
 
 `rfb_cnpj` publishes the monthly CNPJ registry: `geo.establishment` (one row per establishment) and `geo.cnae` (the taxonomy that makes the code readable), both carrying the same `dataset_version_id`.
 
-| Column                                              | Source                                       |
-| --------------------------------------------------- | -------------------------------------------- |
-| `cnpj`, `cnpj_basico`, `is_headquarters`            | `Estabelecimentos{n}` (matriz/filial flag)   |
-| `trade_name`                                        | nome fantasia                                |
-| `cnae_principal`                                    | CNAE fiscal principal                        |
-| `registration_status`, `opened_on`                  | situação cadastral, data de início           |
-| `cep`, `uf`, `municipality_code`                    | endereço                                     |
-| `geo.cnae.code`, `geo.cnae.description`             | `Cnaes.zip`                                  |
+| Column                                   | Source                                     |
+| ---------------------------------------- | ------------------------------------------ |
+| `cnpj`, `cnpj_basico`, `is_headquarters` | `Estabelecimentos{n}` (matriz/filial flag) |
+| `trade_name`                             | nome fantasia                              |
+| `cnae_principal`                         | CNAE fiscal principal                      |
+| `registration_status`, `opened_on`       | situação cadastral, data de início         |
+| `cep`, `uf`, `municipality_code`         | endereço                                   |
+| `geo.cnae.code`, `geo.cnae.description`  | `Cnaes.zip`                                |
 
 - The reference is the publication month (`YYYY-MM`); the source keeps one folder per month and `discoverReference()` lists them.
 - The files are **not** served as an HTML directory: the Receita Federal publishes them through a Nextcloud public share, so discovery is a WebDAV `PROPFIND` and every request carries the share token as the basic-auth user (`RFB_CNPJ_SHARE_TOKEN`). A new share link means a new token.
