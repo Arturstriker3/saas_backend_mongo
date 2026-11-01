@@ -269,6 +269,8 @@ Write rules:
 - Entries inside the archives carry no `.csv` extension (`K3241.K03200Y9.D61010.ESTABELE`, `K3241.K03200Y9.D61010.EMPRECSV`, `F.K03200$Z.D61010.CNAECSV`); a part must extract exactly one data file.
 - `trade_name` is optional in the source: in the 2026-10 edition ~69% of the establishments carry none. The official name is the razão social, so any listing joins `geo.company` by `cnpj_basico`; the establishment row alone is not identifiable by people.
 - `registration_status` is the situação cadastral: `01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada. Market queries filter `= 2`; the rest is company history.
+- The RFB started issuing **alphanumeric CNPJs** in 2026: the 12 root/order positions may carry letters (`00000000E08G12`), while the two check digits stay numeric. `cnpj` and `cnpj_basico` are `text` and the mapper accepts `[0-9A-Z]`, normalizing to upper case.
+- Multiple tables are published as a primary key, so a repeated key blocks the publish after the whole load: records without a razão social are skipped (they carry no usable name and repeat an existing code), and the publish still drops any remaining duplicate on the key before building the primary key, logging how many rows it discarded.
 - `size_code` is the porte: `00` not informed, `01` MEI, `03` EPP, `05` others. `capital_social` is published with a comma decimal separator (`2.000,00`) and is stored as numeric.
 - `municipality_code` is derived, not joined: IBGE code = UF code (2) + TOM code (4) + check digit (alternate weights 1/2, ten's complement). Establishments abroad (`uf = EX`) and unknown UFs stay `NULL`, and more than 5% unresolved aborts the run.
 - The address is kept without the contact data: street, number, complement and neighborhood are what a geocoder needs, while phone, e-mail, sócios and the secondary CNAE stay out. The CNPJ open data carries no latitude/longitude, so a point has to be derived from the address or the CEP in a later step.
@@ -282,6 +284,22 @@ Write rules:
 - No `SELECT *`; explicit column lists only.
 - Heavy aggregations read from materialized views refreshed at publish time.
 - Tiles: `ST_TileEnvelope` + `ST_AsMVT`, versioned URL `/geo/tiles/{version}/{layer}/{z}/{x}/{y}.mvt`, `Cache-Control: public, max-age=31536000, immutable`.
+
+### Query indexes
+
+The CNPJ snapshot is published through load tables and a swap, so the indexes are part of the publisher (`TARGETS`), not only of the migration: whatever the swap does not rebuild disappears on the next publish.
+
+| Index                                       | Serves                                                        |
+| ------------------------------------------- | ------------------------------------------------------------- |
+| `establishment_pkey` (`cnpj`)               | lookup of one establishment                                   |
+| `establishment_company` (`cnpj_basico`)     | all establishments of a company                               |
+| `establishment_municipality_cnae`           | counts per municipality and CNAE, including closed companies  |
+| `establishment_active_municipality_cnae`    | the same, restricted to `registration_status = 2` (market)    |
+| `establishment_trade_name_trgm` (GIN)       | `ILIKE '%…%'` on the trade name, non-null rows only           |
+| `company_pkey`, `company_legal_name_trgm`   | razão social by code, and by partial text                     |
+| `cnae_pkey`                                 | CNAE description                                              |
+
+Trigram search needs `pg_trgm` (created by migration `009`). The published tables are **logged**: the mirror is created by `LIKE`, which does not carry persistence, but the published snapshot must survive a crash recovery.
 
 ## Source catalog
 

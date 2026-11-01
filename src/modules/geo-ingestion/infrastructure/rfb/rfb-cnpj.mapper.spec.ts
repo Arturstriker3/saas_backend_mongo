@@ -84,6 +84,12 @@ describe('toEstablishmentInput', () => {
     });
   });
 
+  test('drops NUL bytes that would break the jsonb payload', () => {
+    const row = toEstablishmentInput(establishmentFields({ 4: 'PADARIA\u0000 DO ZE' }));
+
+    expect(row?.tradeName).toBe('PADARIA DO ZE');
+  });
+
   test('treats a branch flag different from 1 as not headquarters', () => {
     expect(toEstablishmentInput(establishmentFields({ 3: '2' }))?.isHeadquarters).toBe(false);
   });
@@ -112,6 +118,13 @@ describe('toEstablishmentInput', () => {
 
   test('rejects a line whose layout drifted', () => {
     expect(() => toEstablishmentInput(['12345678', '0001', '90'])).toThrow('layout changed');
+  });
+
+  test('accepts the alphanumeric CNPJ issued since 2026', () => {
+    const row = toEstablishmentInput(establishmentFields({ 0: '00000000', 1: 'e08g', 2: '12' }));
+
+    expect(row?.cnpj).toBe('00000000E08G12');
+    expect(row?.companyCode).toBe('00000000');
   });
 
   test('rejects an invalid CNPJ', () => {
@@ -160,17 +173,18 @@ describe('toCompanyInput', () => {
     expect(toCompanyInput(fields)?.capitalSocial).toBe(1234567.89);
   });
 
-  test('falls back to the code when the name is missing and keeps unknown codes null', () => {
+  test('skips a record without a razão social and keeps unknown codes null', () => {
     const fields = new Array<string>(COMPANY_FIELD_COUNT).fill('');
     Object.assign(fields, { 0: '12345678' });
 
-    expect(toCompanyInput(fields)).toEqual({
-      companyCode: '12345678',
-      legalName: '12345678',
-      legalNatureCode: null,
-      capitalSocial: null,
-      sizeCode: null,
-    });
+    expect(toCompanyInput(fields)).toBeNull();
+  });
+
+  test('accepts an alphanumeric company code', () => {
+    const fields = new Array<string>(COMPANY_FIELD_COUNT).fill('');
+    Object.assign(fields, { 0: '12AB34CD', 1: 'ACME LTDA' });
+
+    expect(toCompanyInput(fields)?.companyCode).toBe('12AB34CD');
   });
 
   test('rejects a line whose layout drifted', () => {

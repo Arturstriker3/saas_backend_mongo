@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { sql, type Transaction } from 'kysely';
 import { GEO_KYSELY, type GeoDatabase } from '../../../../common/database/geo/geo.connection';
 import type { GeoDB } from '../../../../common/database/geo/geo-db.types';
@@ -23,6 +23,10 @@ interface LoadIndex {
   name: string;
   primaryKey?: string;
   columns?: string;
+  /** Index method; defaults to `btree`. */
+  method?: string;
+  /** Partial index predicate. */
+  where?: string;
 }
 
 interface LoadTarget {
@@ -47,6 +51,12 @@ const TARGETS: LoadTarget[] = [
     indexes: [
       { temp: 'company_load_pkey', name: 'company_pkey', primaryKey: 'cnpj_basico' },
       { temp: 'company_load_version', name: 'company_version', columns: 'dataset_version_id' },
+      {
+        temp: 'company_load_legal_name_trgm',
+        name: 'company_legal_name_trgm',
+        columns: 'legal_name gin_trgm_ops',
+        method: 'gin',
+      },
     ],
     versionConstraint: 'company_dataset_version_id_fkey',
   },
@@ -60,6 +70,19 @@ const TARGETS: LoadTarget[] = [
         temp: 'establishment_load_municipality_cnae',
         name: 'establishment_municipality_cnae',
         columns: 'municipality_code, cnae_principal',
+      },
+      {
+        temp: 'establishment_load_active_municipality_cnae',
+        name: 'establishment_active_municipality_cnae',
+        columns: 'municipality_code, cnae_principal',
+        where: 'registration_status = 2',
+      },
+      {
+        temp: 'establishment_load_trade_name_trgm',
+        name: 'establishment_trade_name_trgm',
+        columns: 'trade_name gin_trgm_ops',
+        method: 'gin',
+        where: 'trade_name IS NOT NULL',
       },
       {
         temp: 'establishment_load_version',
@@ -81,6 +104,8 @@ const TARGETS: LoadTarget[] = [
  */
 @Injectable()
 export class EstablishmentPublisherPostgis implements EstablishmentPublisher {
+  private readonly logger = new Logger('EstablishmentPublisher');
+
   constructor(@Inject(GEO_KYSELY) private readonly db: GeoDatabase) {}
 
   async begin(input: EstablishmentVersionInput): Promise<string> {
@@ -330,6 +355,8 @@ export class EstablishmentPublisherPostgis implements EstablishmentPublisher {
   private async swap(trx: Transaction<GeoDB>, target: LoadTarget): Promise<void> {
     for (const index of target.indexes) {
       if (index.primaryKey) {
+        await this.dropDuplicates(trx, target, index.primaryKey);
+
         await sql`
           ALTER TABLE ${sql.table(target.load)}
             ADD CONSTRAINT ${sql.id(index.temp)} PRIMARY KEY (${sql.raw(index.primaryKey)})
@@ -339,7 +366,9 @@ export class EstablishmentPublisherPostgis implements EstablishmentPublisher {
 
       await sql`
         CREATE INDEX ${sql.id(index.temp)}
-          ON ${sql.table(target.load)} (${sql.raw(index.columns ?? '')})
+          ON ${sql.table(target.load)}
+          USING ${sql.raw(index.method ?? 'btree')} (${sql.raw(index.columns ?? '')})
+          ${index.where ? sql`WHERE ${sql.raw(index.where)}` : sql``}
       `.execute(trx);
     }
 
@@ -371,5 +400,34 @@ export class EstablishmentPublisherPostgis implements EstablishmentPublisher {
         FOREIGN KEY (dataset_version_id) REFERENCES geo.dataset_version(id)
         ON DELETE SET NULL NOT VALID
     `.execute(trx);
+  }
+
+  /**
+   * The registry repeats a key now and then, and a single repetition would block
+   * the primary key after the whole load. The table is analysed first so the two
+   * scans are planned as a hash join.
+   */
+  private async dropDuplicates(
+    trx: Transaction<GeoDB>,
+    target: LoadTarget,
+    key: string,
+  ): Promise<void> {
+    await sql`ANALYZE ${sql.table(target.load)}`.execute(trx);
+
+    const { rows } = await sql<{ count: string }>`
+      WITH removed AS (
+        DELETE FROM ${sql.table(target.load)} AS duplicate
+        USING ${sql.table(target.load)} AS keeper
+        WHERE duplicate.ctid > keeper.ctid
+          AND duplicate.${sql.raw(key)} = keeper.${sql.raw(key)}
+        RETURNING 1
+      )
+      SELECT count(*)::text AS count FROM removed
+    `.execute(trx);
+
+    const removed = Number(rows[0]?.count ?? 0);
+    if (removed > 0) {
+      this.logger.warn(`${target.load}: dropped ${removed} row(s) duplicated on ${key}`);
+    }
   }
 }

@@ -9,8 +9,12 @@ export const COMPANY_FIELD_COUNT = 7;
 const CNAE_FIELD_COUNT = 2;
 const DIGITS_ONLY = /^\d+$/;
 const CNAE_CODE = /^\d{7}$/;
-const CNPJ_CODE = /^\d{14}$/;
-const COMPANY_CODE = /^\d{8}$/;
+/**
+ * Since 2026 the RFB issues alphanumeric CNPJs: the 12 root/order positions
+ * accept `A-Z`, while the two check digits stay numeric.
+ */
+const CNPJ_CODE = /^[0-9A-Z]{12}\d{2}$/;
+const COMPANY_CODE = /^[0-9A-Z]{8}$/;
 const IBGE_UF_CODE: Record<string, string> = {
   RO: '11',
   AC: '12',
@@ -75,8 +79,8 @@ export function toEstablishmentInput(fields: string[]): EstablishmentInput | nul
     );
   }
 
-  const companyCode = fields[0].trim();
-  const cnpj = `${companyCode}${fields[1].trim()}${fields[2].trim()}`;
+  const companyCode = fields[0].trim().toUpperCase();
+  const cnpj = `${companyCode}${fields[1].trim().toUpperCase()}${fields[2].trim()}`;
   if (cnpj === '') return null;
   if (!CNPJ_CODE.test(cnpj)) {
     throw new Error(`RFB estabelecimentos has an unexpected CNPJ: "${cnpj}"`);
@@ -106,7 +110,7 @@ export function toEstablishmentInput(fields: string[]): EstablishmentInput | nul
 /**
  * Maps an `Empresas{n}.csv` line into the company row.
  * @param fields - Semicolon separated fields of the RFB layout.
- * @returns The company, or null for a blank line.
+ * @returns The company, or null for a blank line or a record without a razão social.
  */
 export function toCompanyInput(fields: string[]): CompanyInput | null {
   if (fields.length < COMPANY_FIELD_COUNT) {
@@ -116,15 +120,20 @@ export function toCompanyInput(fields: string[]): CompanyInput | null {
     );
   }
 
-  const companyCode = fields[0].trim();
+  const companyCode = fields[0].trim().toUpperCase();
   if (companyCode === '') return null;
   if (!COMPANY_CODE.test(companyCode)) {
     throw new Error(`RFB empresas has an unexpected company code: "${companyCode}"`);
   }
 
+  // A record without the razão social is unusable (the name is the whole point of
+  // this table) and, when the code repeats, would break the primary key.
+  const legalName = toText(fields[1]);
+  if (legalName === null) return null;
+
   return {
     companyCode,
-    legalName: toText(fields[1]) ?? companyCode,
+    legalName,
     legalNatureCode: toCode(fields[2], 4),
     capitalSocial: toMoney(fields[4]),
     sizeCode: toCode(fields[5], 2),
@@ -161,8 +170,11 @@ function municipalityCheckDigit(base: string): number {
   return (10 - (sum % 10)) % 10;
 }
 
+/** `jsonb` rejects the `\u0000` escape, so NUL bytes from the source are dropped. */
+const NUL = /\u0000/g;
+
 function toText(raw: string | undefined): string | null {
-  const value = (raw ?? '').trim();
+  const value = (raw ?? '').replace(NUL, '').trim();
   return value === '' ? null : value;
 }
 

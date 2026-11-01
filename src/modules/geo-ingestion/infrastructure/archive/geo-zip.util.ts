@@ -1,12 +1,18 @@
 import { createReadStream, createWriteStream } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { pipeline } from 'node:stream/promises';
 import yauzl from 'yauzl';
 
+/** A dropped socket is expected on multi-gigabyte public downloads. */
+const DOWNLOAD_ATTEMPTS = 4;
+const RETRY_DELAY_MS = 10_000;
+
 /**
- * Streams a URL to a local file. Never buffers the body in memory.
+ * Streams a URL to a local file, restarting from scratch when the connection drops.
+ * Never buffers the body in memory.
  * @param url - File URL.
  * @param target - Destination path.
  * @param headers - Extra request headers, e.g. the WebDAV authorization.
@@ -16,6 +22,23 @@ export async function downloadTo(
   target: string,
   headers: Record<string, string> = {},
 ): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await downloadOnce(url, target, headers);
+      return;
+    } catch (error) {
+      await rm(target, { force: true });
+      if (attempt >= DOWNLOAD_ATTEMPTS) throw error;
+      await sleep(RETRY_DELAY_MS * attempt);
+    }
+  }
+}
+
+async function downloadOnce(
+  url: string,
+  target: string,
+  headers: Record<string, string>,
+): Promise<void> {
   const response = await fetch(url, { headers });
   if (!response.ok || !response.body) {
     throw new Error(`Download failed with status ${response.status}: ${url}`);
@@ -23,6 +46,10 @@ export async function downloadTo(
 
   const body = Readable.fromWeb(response.body as unknown as NodeReadableStream);
   await pipeline(body, createWriteStream(target));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
