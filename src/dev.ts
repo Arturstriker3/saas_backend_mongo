@@ -1,19 +1,16 @@
-async function run() {
-  const coreProcess = Bun.spawn(['bun', 'run', 'dev:core'], {
-    stdin: 'inherit',
-    stdout: 'inherit',
-    stderr: 'inherit',
-  });
+const SCRIPTS = ['dev:core', 'dev:workerEmail', 'dev:workerGeo'];
 
-  const workerEmailProcess = Bun.spawn(['bun', 'run', 'dev:workerEmail'], {
-    stdin: 'inherit',
-    stdout: 'inherit',
-    stderr: 'inherit',
-  });
+async function run() {
+  const processes = SCRIPTS.map((script) =>
+    Bun.spawn(['bun', 'run', script], {
+      stdin: 'inherit',
+      stdout: 'inherit',
+      stderr: 'inherit',
+    }),
+  );
 
   const stopAll = () => {
-    coreProcess.kill();
-    workerEmailProcess.kill();
+    for (const child of processes) child.kill();
   };
 
   process.on('SIGINT', () => {
@@ -26,13 +23,8 @@ async function run() {
     process.exit(0);
   });
 
-  const [coreExitCode, workerExitCode] = await Promise.all([
-    coreProcess.exited,
-    workerEmailProcess.exited,
-  ]);
-
-  const hasFailure = coreExitCode !== 0 || workerExitCode !== 0;
-  if (hasFailure) process.exit(1);
+  const exitCodes = await Promise.all(processes.map((child) => child.exited));
+  if (exitCodes.some((code) => code !== 0)) process.exit(1);
 }
 
 run();
