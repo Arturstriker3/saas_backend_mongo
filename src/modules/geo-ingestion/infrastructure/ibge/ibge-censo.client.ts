@@ -3,6 +3,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { SectorBasicsInput, SectorIncomeInput } from '../../domain/sector-indicator.types';
 import { downloadTo, extractArchive, readLines } from '../archive/geo-zip.util';
+import { splitCsvLine } from '../csv/csv.util';
 
 const AGGREGATES_DIR =
   'https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/Agregados_por_Setor_csv';
@@ -105,7 +106,7 @@ export class IbgeCensoClient {
     try {
       const zipPath = join(workDir, 'source.zip');
       await downloadTo(url, zipPath);
-      const [csvPath] = await extractArchive(zipPath, workDir, ['.csv']);
+      const [csvPath] = await extractArchive(zipPath, workDir, (name) => name.endsWith('.csv'));
       if (!csvPath) throw new Error(`The archive has no csv: ${url}`);
 
       this.logger.log(`Reading ${basename(csvPath)}`);
@@ -162,38 +163,6 @@ function mapColumns(header: string[], required: string[], label: string): Record
   }
 
   return columns;
-}
-
-/** Splits an IBGE CSV line, honouring quoted fields and escaped quotes. */
-function splitCsvLine(line: string, delimiter = ';'): string[] {
-  const fields: string[] = [];
-  let current = '';
-  let quoted = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-
-    if (character === '"') {
-      if (quoted && line[index + 1] === '"') {
-        current += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-      continue;
-    }
-
-    if (character === delimiter && !quoted) {
-      fields.push(current);
-      current = '';
-      continue;
-    }
-
-    current += character;
-  }
-
-  fields.push(current);
-  return fields;
 }
 
 /** IBGE mixes decimals separated by comma and by dot across these files. */

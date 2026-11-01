@@ -1,5 +1,6 @@
 import type {
   ChunkStats,
+  DatasetStagingInput,
   FinalizeDatasetInput,
   PublishDatasetResult,
 } from './dataset-publisher.interface';
@@ -7,13 +8,7 @@ import type { SectorBasicsInput, SectorIncomeInput } from './sector-indicator.ty
 
 export const SECTOR_INDICATOR_PUBLISHER = 'SECTOR_INDICATOR_PUBLISHER';
 
-export interface IndicatorVersionInput {
-  datasetKey: string;
-  reference: string;
-  methodology: string;
-  sourceUrl: string;
-  extractedAt: Date;
-}
+export type IndicatorVersionInput = DatasetStagingInput;
 
 /**
  * Publishes socioeconomic attributes keyed by census tract. Shares the version

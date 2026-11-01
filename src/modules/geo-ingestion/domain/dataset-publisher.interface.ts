@@ -2,12 +2,15 @@ import type { RegionInput } from './region.types';
 
 export const DATASET_PUBLISHER = 'DATASET_PUBLISHER';
 
-export interface DatasetVersionInput {
+export interface DatasetStagingInput {
   datasetKey: string;
   reference: string;
   methodology: string;
   sourceUrl: string;
   extractedAt: Date;
+}
+
+export interface DatasetVersionInput extends DatasetStagingInput {
   /** SRID of the incoming geometry; rows are transformed to 4326 on write. */
   sourceSrid: number;
 }

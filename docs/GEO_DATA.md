@@ -246,6 +246,28 @@ Write rules:
 - A row whose sector code is not 15 digits aborts the run — that is how a layout change or a leaked header gets caught before publishing.
 - `GET /geo/regions/:code` returns `indicators` for census tracts, with the dataset reference that produced it.
 
+### Establishments
+
+`rfb_cnpj` publishes the monthly CNPJ registry: `geo.establishment` (one row per establishment) and `geo.cnae` (the taxonomy that makes the code readable), both carrying the same `dataset_version_id`.
+
+| Column                                              | Source                                       |
+| --------------------------------------------------- | -------------------------------------------- |
+| `cnpj`, `cnpj_basico`, `is_headquarters`            | `Estabelecimentos{n}` (matriz/filial flag)   |
+| `trade_name`                                        | nome fantasia                                |
+| `cnae_principal`                                    | CNAE fiscal principal                        |
+| `registration_status`, `opened_on`                  | situação cadastral, data de início           |
+| `cep`, `uf`, `municipality_code`                    | endereço                                     |
+| `geo.cnae.code`, `geo.cnae.description`             | `Cnaes.zip`                                  |
+
+- The reference is the publication month (`YYYY-MM`); the source keeps one folder per month and `discoverReference()` lists them.
+- The files are **not** served as an HTML directory: the Receita Federal publishes them through a Nextcloud public share, so discovery is a WebDAV `PROPFIND` and every request carries the share token as the basic-auth user (`RFB_CNPJ_SHARE_TOKEN`). A new share link means a new token.
+- **A month folder is published before every archive is uploaded.** Discovery refuses a month that does not list `Cnaes.zip` plus all ten `Estabelecimentos{0..9}.zip`, and each part must reach a row floor, so a truncated upload never becomes a version.
+- Entries inside the archives carry no `.csv` extension (`K3241.K03200Y9.D61010.ESTABELE`, `F.K03200$Z.D61010.CNAECSV`); a part must extract exactly one data file.
+- `municipality_code` is derived, not joined: IBGE code = UF code (2) + TOM code (4) + check digit (alternate weights 1/2, ten's complement). Establishments abroad (`uf = EX`) and unknown UFs stay `NULL`, and more than 5% unresolved aborts the run.
+- Address, phone and e-mail columns are deliberately not stored: the product asks what exists and what it does per municipality, not the street of each store.
+- Files are `latin1`, semicolon separated and fully quoted; they are read as a stream part by part, and each part is deleted as soon as it is read. The largest part is ~2.3 GB compressed and ~7 GB extracted, so the worker needs that much free disk under `GEO_RAW_DIR`.
+- Row floors: 45M–90M establishments per version, 1 200–1 500 CNAEs, minimum 100 000 rows per part. A full run downloads roughly 13 GB.
+
 ## Serving rules
 
 - Bounding box filter before any exact spatial predicate.

@@ -33,6 +33,7 @@ const EnvSchema = z.object({
   GEO_JOB_RETENTION_DAYS: z.string().default('90'),
   GEO_SCHEDULER_TICK_SECONDS: z.string().default('300'),
   GEO_RUN_MIGRATIONS_ON_START: z.string().default('true'),
+  RFB_CNPJ_SHARE_TOKEN: z.string().default('YggdBLfdninEJX9'),
   WORKER_METRICS_ENABLED: z.string().default('true'),
   GEO_WORKER_METRICS_PORT: z.string().default('9464'),
   EMAIL_WORKER_METRICS_PORT: z.string().default('9465'),

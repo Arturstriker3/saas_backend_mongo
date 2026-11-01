@@ -11,7 +11,7 @@ import { loadEnv } from '../../config/env';
 import {
   GEO_KYSELY,
   GEO_POOL,
-  GeoDatabase,
+  type GeoDatabase,
   geoKyselyProvider,
   geoPoolProvider,
 } from './geo.connection';

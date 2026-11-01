@@ -99,6 +99,28 @@ export interface SectorIndicatorTable {
   updated_at: Timestamp;
 }
 
+export interface CnaeTable {
+  code: string;
+  description: string;
+  dataset_version_id: string | null;
+  updated_at: Timestamp;
+}
+
+export interface EstablishmentTable {
+  cnpj: string;
+  cnpj_basico: string;
+  trade_name: string | null;
+  is_headquarters: boolean;
+  cnae_principal: string | null;
+  registration_status: number | null;
+  opened_on: ColumnType<string | null, string | null, string | null>;
+  cep: string | null;
+  uf: string | null;
+  municipality_code: string | null;
+  dataset_version_id: string | null;
+  updated_at: Timestamp;
+}
+
 export interface GeoDB {
   'geo.dataset_license': DatasetLicenseTable;
   'geo.dataset_version': DatasetVersionTable;
@@ -107,4 +129,6 @@ export interface GeoDB {
   'geo.ingestion_schedule': IngestionScheduleTable;
   'geo.region': RegionTable;
   'geo.sector_indicator': SectorIndicatorTable;
+  'geo.cnae': CnaeTable;
+  'geo.establishment': EstablishmentTable;
 }

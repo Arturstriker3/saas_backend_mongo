@@ -7,11 +7,16 @@ import yauzl from 'yauzl';
 
 /**
  * Streams a URL to a local file. Never buffers the body in memory.
- * @param url - Public file URL.
+ * @param url - File URL.
  * @param target - Destination path.
+ * @param headers - Extra request headers, e.g. the WebDAV authorization.
  */
-export async function downloadTo(url: string, target: string): Promise<void> {
-  const response = await fetch(url);
+export async function downloadTo(
+  url: string,
+  target: string,
+  headers: Record<string, string> = {},
+): Promise<void> {
+  const response = await fetch(url, { headers });
   if (!response.ok || !response.body) {
     throw new Error(`Download failed with status ${response.status}: ${url}`);
   }
@@ -21,16 +26,16 @@ export async function downloadTo(url: string, target: string): Promise<void> {
 }
 
 /**
- * Extracts the entries with the wanted extensions into a directory.
+ * Extracts the entries accepted by the predicate into a directory.
  * @param zipPath - Local archive path.
  * @param targetDir - Directory that receives the files.
- * @param extensions - Lowercase extensions to extract, e.g. `['.csv']`.
- * @returns Paths of the extracted files.
+ * @param matches - Predicate over the entry name, e.g. `(name) => name.endsWith('.csv')`.
+ * @returns Paths of the extracted files, in archive order.
  */
 export function extractArchive(
   zipPath: string,
   targetDir: string,
-  extensions: string[],
+  matches: (name: string) => boolean,
 ): Promise<string[]> {
   return new Promise((resolve, reject) => {
     yauzl.open(zipPath, { lazyEntries: true }, (openError, zipFile) => {
@@ -45,12 +50,11 @@ export function extractArchive(
 
       zipFile.on('end', () => {
         if (extracted.length > 0) resolve(extracted);
-        else reject(new Error(`The archive has no ${extensions.join('/')} entry`));
+        else reject(new Error('The archive has no entry matching the expected layout'));
       });
 
       zipFile.on('entry', (entry) => {
-        const name = entry.fileName.toLowerCase();
-        if (!extensions.some((extension) => name.endsWith(extension))) {
+        if (!matches(entry.fileName.toLowerCase())) {
           zipFile.readEntry();
           return;
         }
@@ -77,9 +81,16 @@ export function extractArchive(
   });
 }
 
-/** Reads a local file line by line without loading it into memory. */
-export async function* readLines(path: string): AsyncGenerator<string> {
-  const input = createReadStream(path, { encoding: 'utf8' });
+/**
+ * Reads a local file line by line without loading it into memory.
+ * @param path - Local file path.
+ * @param encoding - File encoding; the Receita Federal files are `latin1`.
+ */
+export async function* readLines(
+  path: string,
+  encoding: BufferEncoding = 'utf8',
+): AsyncGenerator<string> {
+  const input = createReadStream(path, { encoding });
   let pending = '';
 
   for await (const piece of input) {
