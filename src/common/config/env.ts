@@ -26,7 +26,6 @@ const EnvSchema = z.object({
   GEO_DB_CONNECT_TIMEOUT_MS: z.string().default('10000'),
   GEO_DB_STATEMENT_TIMEOUT_MS: z.string().default('30000'),
   GEO_RAW_DIR: z.string().default('./data/geo'),
-  GEO_RAW_RETENTION_DAYS: z.string().default('30'),
   GEO_INGEST_CONCURRENCY: z.string().default('1'),
   GEO_JOB_STALE_MINUTES: z.string().default('30'),
   GEO_JOB_POLL_SECONDS: z.string().default('15'),

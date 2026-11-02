@@ -8,6 +8,7 @@ import { migration006Establishments } from './006_establishments';
 import { migration007Companies } from './007_companies';
 import { migration008EstablishmentAddress } from './008_establishment_address';
 import { migration009EstablishmentQueryIndexes } from './009_establishment_query_indexes';
+import { migration010DataHealth } from './010_data_health';
 
 export const geoMigrations: Record<string, Migration> = {
   '001_initial': migration001Initial,
@@ -19,4 +20,5 @@ export const geoMigrations: Record<string, Migration> = {
   '007_companies': migration007Companies,
   '008_establishment_address': migration008EstablishmentAddress,
   '009_establishment_query_indexes': migration009EstablishmentQueryIndexes,
+  '010_data_health': migration010DataHealth,
 };

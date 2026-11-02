@@ -30,7 +30,7 @@ Env vars:
 
 - `GEO_DB_URL` (ingest role), `GEO_DB_READ_URL` (api role)
 - `GEO_DB_MAX_POOL_SIZE`, `GEO_DB_MIN_POOL_SIZE`, `GEO_DB_CONNECT_TIMEOUT_MS`, `GEO_DB_STATEMENT_TIMEOUT_MS`
-- `GEO_RAW_DIR`, `GEO_RAW_RETENTION_DAYS`, `GEO_INGEST_CONCURRENCY`
+- `GEO_RAW_DIR`, `GEO_INGEST_CONCURRENCY`
 - `GEO_JOB_STALE_MINUTES`, `GEO_JOB_RETENTION_DAYS`, `GEO_SCHEDULER_TICK_SECONDS`
 - `RFB_CNPJ_SHARE_TOKEN` — token of the Receita Federal public share, used as the WebDAV user. It has no expiry date: it stays valid while the Receita Federal keeps the share, and only dies if the link is revoked or replaced (then a new token is needed). It is a public read-only credential, not a secret to be rotated on a schedule.
 - `WORKER_METRICS_ENABLED`, `GEO_WORKER_METRICS_PORT`, `EMAIL_WORKER_METRICS_PORT`
@@ -158,7 +158,7 @@ Rules:
 - Atomic: a version is visible only after `publish`. Failed runs leave `staging` tables and no `geo` rows.
 - Recoverable: a crashed run is recovered by the heartbeat reaper, retried with backoff, then parked as `failed`. `staging` is truncated at the start of every run.
 - Not resumable mid-dataset: a recovered job re-reads the dataset from the beginning, reusing the `staging` version. Recovery costs time, never correctness.
-- Bounded: each part is deleted as soon as it is read, and a run starts by wiping its reference directory, so a killed run cannot leave archives piling up. `GEO_RAW_RETENTION_DAYS` is reserved for a future cleaner of old references; nothing reads it yet.
+- Bounded: each part is deleted as soon as it is read, and a run starts by wiping its reference directory, so a killed run cannot leave archives piling up. Nothing is kept between runs: a retry downloads again.
 - Observable: see Observability.
 - Dependency order matters: malhas → censo → cnefe → cnpj → rest. A dataset declares `dependsOn` and is skipped while a dependency is missing.
 
@@ -219,6 +219,42 @@ Alerts that matter: `geo_queue_oldest_queued_seconds > 3600`, `geo_stuck_running
 Dashboard: `infra/grafana/dashboards/workers.json`.
 
 Dashboard copy rule: titles and descriptions are written in plain Portuguese so a non-engineer understands what is measured and what a bad state means. Every panel carries a `description` tooltip, the board opens with a "how to read" block, and legends use human labels (`esperando`, `em andamento`, `com erro`) instead of raw label values.
+
+## Data health
+
+`geo.data_health` is a **view**, not a table: it answers "is the database healthy, and what is broken?" with one `SELECT`, and is always current — no refresh step to forget.
+
+```sql
+SELECT * FROM geo.data_health ORDER BY severity DESC, check_key;
+```
+
+Every check reads the catalog, a small domain table or planner statistics. Nothing scans the 70M+ row tables, so the view is instant and volumes reflect the last `ANALYZE`.
+
+| `severity` | Meaning                                   |
+| ---------- | ----------------------------------------- |
+| `ok`       | within expectation                        |
+| `warn`     | degraded, still serving                   |
+| `broken`   | wrong data or a structural problem to fix |
+
+| `check_key`                | Detects                                                                                                                           |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `extensions`               | `postgis` and `pg_trgm` installed                                                                                                 |
+| `query_indexes`            | the five indexes the product queries depend on                                                                                    |
+| `load_tables`              | `geo.*_load` mirrors left behind by a killed publish                                                                              |
+| `unlogged_tables`          | tables a crash recovery would truncate                                                                                            |
+| `region_states`            | states published from the malha                                                                                                   |
+| `region_municipalities`    | municipalities published versus the 5,571 the IBGE lists                                                                          |
+| `region_orphans`           | municipalities whose parent is not a state                                                                                        |
+| `region_invalid_geometry`  | polygons rejected by `ST_IsValid`                                                                                                 |
+| `establishment_rows`       | estimated rows (`pg_class.reltuples`)                                                                                             |
+| `company_rows`             | estimated rows                                                                                                                    |
+| `cnae_rows`                | estimated rows                                                                                                                    |
+| `establishment_unresolved` | share of establishments without `municipality_code` (`pg_stats.null_frac`; `warn` above 1%, `broken` above the 5% pipeline limit) |
+| `stale_datasets`           | published versions older than their `slaDays`                                                                                     |
+| `failed_jobs`              | ingestion jobs that failed in the last 7 days                                                                                     |
+| `unpublished_datasets`     | enabled schedules that already ran without publishing                                                                             |
+
+`establishment_unresolved` depends on `ANALYZE`: without statistics it reports `warn` and asks for an `ANALYZE geo.establishment` instead of guessing.
 
 ## Region model
 
@@ -289,15 +325,15 @@ Write rules:
 
 The CNPJ snapshot is published through load tables and a swap, so the indexes are part of the publisher (`TARGETS`), not only of the migration: whatever the swap does not rebuild disappears on the next publish.
 
-| Index                                       | Serves                                                        |
-| ------------------------------------------- | ------------------------------------------------------------- |
-| `establishment_pkey` (`cnpj`)               | lookup of one establishment                                   |
-| `establishment_company` (`cnpj_basico`)     | all establishments of a company                               |
-| `establishment_municipality_cnae`           | counts per municipality and CNAE, including closed companies  |
-| `establishment_active_municipality_cnae`    | the same, restricted to `registration_status = 2` (market)    |
-| `establishment_trade_name_trgm` (GIN)       | `ILIKE '%…%'` on the trade name, non-null rows only           |
-| `company_pkey`, `company_legal_name_trgm`   | razão social by code, and by partial text                     |
-| `cnae_pkey`                                 | CNAE description                                              |
+| Index                                     | Serves                                                       |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `establishment_pkey` (`cnpj`)             | lookup of one establishment                                  |
+| `establishment_company` (`cnpj_basico`)   | all establishments of a company                              |
+| `establishment_municipality_cnae`         | counts per municipality and CNAE, including closed companies |
+| `establishment_active_municipality_cnae`  | the same, restricted to `registration_status = 2` (market)   |
+| `establishment_trade_name_trgm` (GIN)     | `ILIKE '%…%'` on the trade name, non-null rows only          |
+| `company_pkey`, `company_legal_name_trgm` | razão social by code, and by partial text                    |
+| `cnae_pkey`                               | CNAE description                                             |
 
 Trigram search needs `pg_trgm` (created by migration `009`). The published tables are **logged**: the mirror is created by `LIKE`, which does not carry persistence, but the published snapshot must survive a crash recovery.
 
