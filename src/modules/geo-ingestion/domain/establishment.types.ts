@@ -4,11 +4,18 @@ export interface CnaeInput {
   description: string;
 }
 
+/** Municipality as the Receita Federal publishes it: a TOM code and a name. */
+export interface MunicipalityInput {
+  tomCode: string;
+  name: string;
+}
+
 /**
- * One establishment (CNPJ) with the attributes the product queries.
- * The municipality is the 7-digit IBGE code derived from the CNPJ `uf` + TOM code.
+ * One establishment (CNPJ) exactly as the source layouts it. The municipality
+ * still has to be translated: the RFB `TOM` code is its own numbering, not the
+ * IBGE code.
  */
-export interface EstablishmentInput {
+export interface EstablishmentRecord {
   cnpj: string;
   companyCode: string;
   tradeName: string | null;
@@ -24,6 +31,12 @@ export interface EstablishmentInput {
   neighborhood: string | null;
   cep: string | null;
   uf: string | null;
+  /** Receita Federal municipality code; resolved into IBGE before publishing. */
+  tomCode: string | null;
+}
+
+/** An establishment ready to be published, with the 7-digit IBGE municipality. */
+export interface EstablishmentInput extends EstablishmentRecord {
   municipalityCode: string | null;
 }
 

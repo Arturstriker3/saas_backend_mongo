@@ -25,6 +25,7 @@ import { DatasetPublisherPostgis } from './infrastructure/publisher/dataset-publ
 import { EstablishmentPublisherPostgis } from './infrastructure/publisher/establishment.publisher.postgis';
 import { SectorIndicatorPublisherPostgis } from './infrastructure/publisher/sector-indicator.publisher.postgis';
 import { RfbCnpjClient } from './infrastructure/rfb/rfb-cnpj.client';
+import { RfbMunicipalityResolver } from './infrastructure/rfb/rfb-municipality.resolver';
 import { GeoShapefileSource } from './infrastructure/shapefile/geo-shapefile.source';
 
 @Module({
@@ -43,6 +44,7 @@ import { GeoShapefileSource } from './infrastructure/shapefile/geo-shapefile.sou
     IbgeMalhaClient,
     IbgeCensoClient,
     RfbCnpjClient,
+    RfbMunicipalityResolver,
     GeoShapefileSource,
     IbgeMalhaAdapter,
     IbgeBairroAdapter,

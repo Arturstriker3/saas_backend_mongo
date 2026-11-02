@@ -3,10 +3,12 @@ import { splitCsvLine } from '../csv/csv.util';
 import {
   COMPANY_FIELD_COUNT,
   ESTABLISHMENT_FIELD_COUNT,
+  normalizeName,
   toCnaeInput,
   toCompanyInput,
-  toEstablishmentInput,
-  toIbgeMunicipalityCode,
+  toEstablishmentRecord,
+  toMunicipalityInput,
+  ufToIbgeCode,
 } from './rfb-cnpj.mapper';
 
 /** Real line from `Empresas9.zip` (2026-10), every field quoted. */
@@ -43,9 +45,9 @@ function establishmentFields(overrides: Record<number, string> = {}): string[] {
   return fields;
 }
 
-describe('toEstablishmentInput', () => {
+describe('toEstablishmentRecord', () => {
   test('maps the RFB layout into the establishment row', () => {
-    expect(toEstablishmentInput(establishmentFields())).toEqual({
+    expect(toEstablishmentRecord(establishmentFields())).toEqual({
       cnpj: '12345678000190',
       companyCode: '12345678',
       tradeName: 'PADARIA DO ZE',
@@ -60,12 +62,12 @@ describe('toEstablishmentInput', () => {
       neighborhood: 'CENTRO',
       cep: '49010000',
       uf: 'SE',
-      municipalityCode: '2800308',
+      tomCode: '0030',
     });
   });
 
   test('maps a real, fully quoted line from the source', () => {
-    expect(toEstablishmentInput(splitCsvLine(REAL_ESTABLISHMENT_LINE))).toEqual({
+    expect(toEstablishmentRecord(splitCsvLine(REAL_ESTABLISHMENT_LINE))).toEqual({
       cnpj: '34241547000109',
       companyCode: '34241547',
       tradeName: 'MERCANTIL MINIPRECO',
@@ -80,29 +82,29 @@ describe('toEstablishmentInput', () => {
       neighborhood: 'PITUBA',
       cep: '41830595',
       uf: 'BA',
-      municipalityCode: '2938496',
+      tomCode: '3849',
     });
   });
 
   test('drops NUL bytes that would break the jsonb payload', () => {
-    const row = toEstablishmentInput(establishmentFields({ 4: 'PADARIA\u0000 DO ZE' }));
+    const row = toEstablishmentRecord(establishmentFields({ 4: 'PADARIA\u0000 DO ZE' }));
 
     expect(row?.tradeName).toBe('PADARIA DO ZE');
   });
 
   test('treats a branch flag different from 1 as not headquarters', () => {
-    expect(toEstablishmentInput(establishmentFields({ 3: '2' }))?.isHeadquarters).toBe(false);
+    expect(toEstablishmentRecord(establishmentFields({ 3: '2' }))?.isHeadquarters).toBe(false);
   });
 
   test('keeps unknown values as null instead of failing the run', () => {
-    const row = toEstablishmentInput(
+    const row = toEstablishmentRecord(
       establishmentFields({
         5: '',
         10: '00000000',
         11: '0000000',
         18: '00000000',
         19: 'EX',
-        20: '',
+        20: '000',
       }),
     );
 
@@ -112,46 +114,68 @@ describe('toEstablishmentInput', () => {
       openedOn: null,
       cep: null,
       uf: null,
-      municipalityCode: null,
+      tomCode: null,
     });
   });
 
   test('rejects a line whose layout drifted', () => {
-    expect(() => toEstablishmentInput(['12345678', '0001', '90'])).toThrow('layout changed');
+    expect(() => toEstablishmentRecord(['12345678', '0001', '90'])).toThrow('layout changed');
   });
 
   test('accepts the alphanumeric CNPJ issued since 2026', () => {
-    const row = toEstablishmentInput(establishmentFields({ 0: '00000000', 1: 'e08g', 2: '12' }));
+    const row = toEstablishmentRecord(establishmentFields({ 0: '00000000', 1: 'e08g', 2: '12' }));
 
     expect(row?.cnpj).toBe('00000000E08G12');
     expect(row?.companyCode).toBe('00000000');
   });
 
   test('rejects an invalid CNPJ', () => {
-    expect(() => toEstablishmentInput(establishmentFields({ 2: 'XX' }))).toThrow('unexpected CNPJ');
+    expect(() => toEstablishmentRecord(establishmentFields({ 2: 'XX' }))).toThrow(
+      'unexpected CNPJ',
+    );
   });
 
   test('skips a line without a CNPJ', () => {
     const fields = new Array<string>(ESTABLISHMENT_FIELD_COUNT).fill('');
-    expect(toEstablishmentInput(fields)).toBeNull();
+    expect(toEstablishmentRecord(fields)).toBeNull();
   });
 });
 
-describe('toIbgeMunicipalityCode', () => {
-  test.each([
-    ['SE', '0030', '2800308'],
-    ['SP', '5030', '3550308'],
-    ['RJ', '0455', '3304557'],
-  ])('derives the IBGE code for %s %s', (uf, tomCode, expected) => {
-    expect(toIbgeMunicipalityCode(uf, tomCode)).toBe(expected);
+describe('toMunicipalityInput', () => {
+  test('maps the TOM code and the name', () => {
+    expect(toMunicipalityInput(['7107', 'SAO PAULO'])).toEqual({
+      tomCode: '7107',
+      name: 'SAO PAULO',
+    });
   });
 
-  test('returns null for an establishment abroad', () => {
-    expect(toIbgeMunicipalityCode('EX', '0000')).toBeNull();
+  test('skips a line without a code', () => {
+    expect(toMunicipalityInput(['', 'SAO PAULO'])).toBeNull();
   });
 
-  test('returns null for an unknown UF', () => {
-    expect(toIbgeMunicipalityCode('ZZ', '0030')).toBeNull();
+  test('rejects a line whose layout drifted', () => {
+    expect(() => toMunicipalityInput(['7107'])).toThrow('layout changed');
+  });
+});
+
+describe('ufToIbgeCode', () => {
+  test('maps a state to its IBGE code', () => {
+    expect(ufToIbgeCode('SE')).toBe('28');
+    expect(ufToIbgeCode('sp')).toBe('35');
+  });
+
+  test('returns null for an unknown or missing UF', () => {
+    expect(ufToIbgeCode('ZZ')).toBeNull();
+    expect(ufToIbgeCode(null)).toBeNull();
+  });
+});
+
+describe('normalizeName', () => {
+  test('removes diacritics and case so both sources compare', () => {
+    expect(normalizeName('São Paulo')).toBe('sao paulo');
+    expect(normalizeName('SAO PAULO')).toBe('sao paulo');
+    expect(normalizeName('Pindaré-Mirim')).toBe('pindare mirim');
+    expect(normalizeName("Sant'Ana do Livramento")).toBe('sant ana do livramento');
   });
 });
 

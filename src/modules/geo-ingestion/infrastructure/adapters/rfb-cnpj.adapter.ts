@@ -8,9 +8,16 @@ import {
   ESTABLISHMENT_PUBLISHER,
   type EstablishmentPublisher,
 } from '../../domain/establishment-publisher.interface';
-import type { CnaeInput, CompanyInput, EstablishmentInput } from '../../domain/establishment.types';
+import type {
+  CnaeInput,
+  CompanyInput,
+  EstablishmentInput,
+  EstablishmentRecord,
+  MunicipalityInput,
+} from '../../domain/establishment.types';
 import { checksumOf, createChecksumAccumulator } from '../geojson/fingerprint';
 import { RFB_CNPJ_WEBDAV_URL, RfbCnpjClient, type RfbCnpjSourceSet } from '../rfb/rfb-cnpj.client';
+import { RfbMunicipalityResolver } from '../rfb/rfb-municipality.resolver';
 
 const FLUSH_SIZE = 5_000;
 const PROGRESS_EVERY = 1_000_000;
@@ -50,6 +57,7 @@ export class RfbCnpjAdapter implements DatasetAdapter {
 
   constructor(
     private readonly client: RfbCnpjClient,
+    private readonly municipalities: RfbMunicipalityResolver,
     @Inject(ESTABLISHMENT_PUBLISHER) private readonly publisher: EstablishmentPublisher,
   ) {}
 
@@ -79,6 +87,8 @@ export class RfbCnpjAdapter implements DatasetAdapter {
 
     try {
       this.logger.log(`Concurrency: ${this.concurrency()} archive(s) at a time`);
+
+      await this.loadMunicipalities(source, baseDir);
 
       const cnae = await this.writeCnaes(versionId, source, baseDir);
       const company = await this.writeCompanies(versionId, source, baseDir);
@@ -113,6 +123,22 @@ export class RfbCnpjAdapter implements DatasetAdapter {
   private concurrency(): number {
     const parsed = Number.parseInt(loadEnv().RFB_CNPJ_CONCURRENCY, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  }
+
+  /**
+   * The `TOM` code published with each establishment is not an IBGE code, so the
+   * translation table has to be in memory before the establishments stream.
+   */
+  private async loadMunicipalities(source: RfbCnpjSourceSet, baseDir: string): Promise<void> {
+    const municipalities: MunicipalityInput[] = [];
+    for await (const municipality of this.client.readMunicipalities(
+      source.municipalityUrl,
+      join(baseDir, 'municipality'),
+    )) {
+      municipalities.push(municipality);
+    }
+
+    await this.municipalities.load(municipalities);
   }
 
   private async writeCnaes(
@@ -194,10 +220,11 @@ export class RfbCnpjAdapter implements DatasetAdapter {
 
         this.logger.log(`Establishment part ${index}: downloading ${basename(url)}`);
 
-        for await (const row of this.client.readEstablishments(
+        for await (const record of this.client.readEstablishments(
           url,
           join(baseDir, `part-${index}`),
         )) {
+          const row = this.withMunicipality(record);
           checksum.add(establishmentFingerprint(row));
           buffer.push(row);
           partCount += 1;
@@ -222,6 +249,14 @@ export class RfbCnpjAdapter implements DatasetAdapter {
     );
 
     return { ...counter, stats, digests };
+  }
+
+  /** Attaches the IBGE municipality, translated from the RFB `TOM` code. */
+  private withMunicipality(record: EstablishmentRecord): EstablishmentInput {
+    return {
+      ...record,
+      municipalityCode: this.municipalities.resolve(record.tomCode, record.uf),
+    };
   }
 
   private async flushCnaes(

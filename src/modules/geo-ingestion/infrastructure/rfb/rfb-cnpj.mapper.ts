@@ -1,10 +1,18 @@
-import type { CnaeInput, CompanyInput, EstablishmentInput } from '../../domain/establishment.types';
+import type {
+  CnaeInput,
+  CompanyInput,
+  EstablishmentRecord,
+  MunicipalityInput,
+} from '../../domain/establishment.types';
 
 /** The RFB `Estabelecimentos` layout has 30 columns and no header. */
 export const ESTABLISHMENT_FIELD_COUNT = 30;
 
 /** The RFB `Empresas` layout has 7 columns and no header. */
 export const COMPANY_FIELD_COUNT = 7;
+
+/** The RFB `Municipios` layout has 2 columns: code and name. */
+export const MUNICIPALITY_FIELD_COUNT = 2;
 
 const CNAE_FIELD_COUNT = 2;
 const DIGITS_ONLY = /^\d+$/;
@@ -44,6 +52,9 @@ const IBGE_UF_CODE: Record<string, string> = {
   GO: '52',
   DF: '53',
 };
+/** Diacritics and anything that is not a letter, digit or space breaks the match. */
+const DIACRITICS = /[\u0300-\u036f]/g;
+const NOT_NAME = /[^\p{L}\p{N} ]/gu;
 
 /**
  * Maps a `Cnaes.csv` line into the taxonomy row.
@@ -67,11 +78,31 @@ export function toCnaeInput(fields: string[]): CnaeInput | null {
 }
 
 /**
+ * Maps a `Municipios.csv` line into the Receita Federal municipality.
+ * @param fields - Semicolon separated fields: TOM code, name.
+ * @returns The municipality, or null for a blank line.
+ */
+export function toMunicipalityInput(fields: string[]): MunicipalityInput | null {
+  if (fields.length < MUNICIPALITY_FIELD_COUNT) {
+    throw new Error(
+      `RFB municipios layout changed; expected ${MUNICIPALITY_FIELD_COUNT} fields, ` +
+        `received ${fields.length}`,
+    );
+  }
+
+  const tomCode = toCode(fields[0], 4);
+  const name = toText(fields[1]);
+  if (tomCode === null || name === null) return null;
+
+  return { tomCode, name };
+}
+
+/**
  * Maps an `Estabelecimentos{n}.csv` line into the establishment row.
  * @param fields - Semicolon separated fields of the RFB layout.
  * @returns The establishment, or null for a blank line.
  */
-export function toEstablishmentInput(fields: string[]): EstablishmentInput | null {
+export function toEstablishmentRecord(fields: string[]): EstablishmentRecord | null {
   if (fields.length < ESTABLISHMENT_FIELD_COUNT) {
     throw new Error(
       `RFB estabelecimentos layout changed; expected ${ESTABLISHMENT_FIELD_COUNT} fields, ` +
@@ -85,8 +116,6 @@ export function toEstablishmentInput(fields: string[]): EstablishmentInput | nul
   if (!CNPJ_CODE.test(cnpj)) {
     throw new Error(`RFB estabelecimentos has an unexpected CNPJ: "${cnpj}"`);
   }
-
-  const uf = toUf(fields[19]);
 
   return {
     cnpj,
@@ -102,8 +131,8 @@ export function toEstablishmentInput(fields: string[]): EstablishmentInput | nul
     complement: toText(fields[16]),
     neighborhood: toText(fields[17]),
     cep: toCep(fields[18]),
-    uf,
-    municipalityCode: uf ? toIbgeMunicipalityCode(uf, fields[20].trim()) : null,
+    uf: toUf(fields[19]),
+    tomCode: toCode(fields[20], 4),
   };
 }
 
@@ -141,33 +170,29 @@ export function toCompanyInput(fields: string[]): CompanyInput | null {
 }
 
 /**
- * Builds the 7-digit IBGE municipality code from the CNPJ `uf` and TOM code.
- * Establishments abroad (`EX`) or with an unknown UF have no municipality.
+ * IBGE code of a state, used to narrow the municipality match.
  * @param uf - Two-letter state code.
- * @param tomCode - 4-digit TOM code published by the RFB.
- * @returns The IBGE code with its check digit, or null when it cannot be resolved.
+ * @returns The 2-digit IBGE code, or null for an unknown UF (`EX` included).
  */
-export function toIbgeMunicipalityCode(uf: string, tomCode: string): string | null {
-  const ufCode = IBGE_UF_CODE[uf];
-  if (!ufCode || !/^\d{4}$/.test(tomCode)) return null;
-
-  const base = `${ufCode}${tomCode}`;
-  return `${base}${municipalityCheckDigit(base)}`;
+export function ufToIbgeCode(uf: string | null): string | null {
+  if (uf === null) return null;
+  return IBGE_UF_CODE[uf.toUpperCase()] ?? null;
 }
 
 /**
- * IBGE check digit: alternate weights 1 and 2, sum the digits of each product
- * and take the ten's complement.
+ * Normalizes a municipality name the same way `geo.region.search_name` is built:
+ * lower case, no diacritics, single spaces.
+ * @param name - Municipality name as published.
+ * @returns The comparable form.
  */
-function municipalityCheckDigit(base: string): number {
-  let sum = 0;
-
-  for (let index = 0; index < base.length; index += 1) {
-    const product = Number(base[index]) * (index % 2 === 0 ? 1 : 2);
-    sum += Math.floor(product / 10) + (product % 10);
-  }
-
-  return (10 - (sum % 10)) % 10;
+export function normalizeName(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(DIACRITICS, '')
+    .replace(NOT_NAME, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 }
 
 /** `jsonb` rejects the `\u0000` escape, so NUL bytes from the source are dropped. */
@@ -191,7 +216,7 @@ function toCnaeCode(raw: string | undefined): string | null {
   return value;
 }
 
-/** A numeric code of fixed width, used by natureza jurídica and porte. */
+/** A numeric code of fixed width, used by natureza jurídica, porte and TOM. */
 function toCode(raw: string | undefined, width: number): string | null {
   const value = (raw ?? '').trim();
   if (value.length !== width || !DIGITS_ONLY.test(value)) return null;

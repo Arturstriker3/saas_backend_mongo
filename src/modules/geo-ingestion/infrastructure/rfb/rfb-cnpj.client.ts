@@ -2,10 +2,20 @@ import { Injectable, Logger } from '@nestjs/common';
 import { mkdir, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { loadEnv } from '../../../../common/config/env';
-import type { CnaeInput, CompanyInput, EstablishmentInput } from '../../domain/establishment.types';
+import type {
+  CnaeInput,
+  CompanyInput,
+  EstablishmentRecord,
+  MunicipalityInput,
+} from '../../domain/establishment.types';
 import { downloadTo, extractArchive, readLines } from '../archive/geo-zip.util';
 import { joinQuotedLines, splitCsvLine } from '../csv/csv.util';
-import { toCnaeInput, toCompanyInput, toEstablishmentInput } from './rfb-cnpj.mapper';
+import {
+  toCnaeInput,
+  toCompanyInput,
+  toEstablishmentRecord,
+  toMunicipalityInput,
+} from './rfb-cnpj.mapper';
 
 const RFB_CNPJ_HOST = 'https://arquivos.receitafederal.gov.br';
 
@@ -18,10 +28,11 @@ export const COMPANY_PARTS = 10;
 
 const MONTH_DIRECTORY = /^(\d{4}-\d{2})$/;
 const CNAE_FILE = /^cnaes\.zip$/i;
+const MUNICIPALITY_FILE = /^municipios\.zip$/i;
 const ESTABLISHMENT_FILE = /^estabelecimentos(\d+)\.zip$/i;
 const COMPANY_FILE = /^empresas(\d+)\.zip$/i;
 /** RFB data files carry no extension: `K3241.K03200Y9.D61010.ESTABELE`. */
-const DATA_ENTRY = /\.(estabele|cnaecsv|emprecsv)$/i;
+const DATA_ENTRY = /\.(estabele|cnaecsv|emprecsv|municcsv)$/i;
 const HREF = /<d:href>([^<]+)<\/d:href>/g;
 const LATIN1 = 'latin1';
 
@@ -29,6 +40,8 @@ export interface RfbCnpjSourceSet {
   /** Publication month, as `YYYY-MM`. */
   reference: string;
   cnaeUrl: string;
+  /** TOM code → municipality name, the bridge to the IBGE code. */
+  municipalityUrl: string;
   /** Establishment archives ordered by part number. */
   establishmentUrls: string[];
   /** Company archives ordered by part number. */
@@ -59,6 +72,13 @@ export class RfbCnpjClient {
     const cnae = entries.find((entry) => CNAE_FILE.test(entry.name));
     if (!cnae) throw new Error(`RFB ${reference} has no Cnaes.zip; the month is incomplete`);
 
+    const municipality = entries.find((entry) => MUNICIPALITY_FILE.test(entry.name));
+    if (!municipality) {
+      throw new Error(
+        `RFB ${reference} has no Municipios.zip; the municipality cannot be resolved`,
+      );
+    }
+
     const establishmentUrls = this.collectParts(
       entries,
       ESTABLISHMENT_FILE,
@@ -77,7 +97,22 @@ export class RfbCnpjClient {
         `${companyUrls.length} company archives`,
     );
 
-    return { reference, cnaeUrl: cnae.url, establishmentUrls, companyUrls };
+    return {
+      reference,
+      cnaeUrl: cnae.url,
+      municipalityUrl: municipality.url,
+      establishmentUrls,
+      companyUrls,
+    };
+  }
+
+  async *readMunicipalities(url: string, workDir: string): AsyncGenerator<MunicipalityInput> {
+    for await (const record of joinQuotedLines(this.csvLines(url, workDir))) {
+      if (record.trim() === '') continue;
+
+      const municipality = this.mapRecord(url, record, toMunicipalityInput);
+      if (municipality) yield municipality;
+    }
   }
 
   async *readCnaes(url: string, workDir: string): AsyncGenerator<CnaeInput> {
@@ -98,11 +133,11 @@ export class RfbCnpjClient {
     }
   }
 
-  async *readEstablishments(url: string, workDir: string): AsyncGenerator<EstablishmentInput> {
+  async *readEstablishments(url: string, workDir: string): AsyncGenerator<EstablishmentRecord> {
     for await (const record of joinQuotedLines(this.csvLines(url, workDir))) {
       if (record.trim() === '') continue;
 
-      const establishment = this.mapRecord(url, record, toEstablishmentInput);
+      const establishment = this.mapRecord(url, record, toEstablishmentRecord);
       if (establishment) yield establishment;
     }
   }
