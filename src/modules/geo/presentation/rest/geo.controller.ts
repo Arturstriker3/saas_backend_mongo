@@ -15,6 +15,7 @@ import {
   type GetCompanyQueryInputDTO,
 } from '../../application/use-cases/get-company.use-case';
 import {
+  GetMunicipalityEmploymentUseCase,
   GetMunicipalityStatisticsDTO,
   GetMunicipalityStatisticsUseCase,
   GetUfStatisticsDTO,
@@ -334,6 +335,66 @@ class UfStatisticsResponseDTO {
   topCnaes!: CnaeRankResponseDTO[];
 }
 
+class EmploymentTotalsResponseDTO {
+  @ApiProperty({ example: 300000 })
+  companies!: number;
+
+  @ApiProperty({ example: 4100000 })
+  occupiedPersons!: number;
+
+  @ApiProperty({ example: 3600000 })
+  salariedPersons!: number;
+
+  @ApiProperty({
+    example: 14000000,
+    description: 'Salaries and other remuneration, in thousands of reais',
+  })
+  salariesThousandBrl!: number;
+
+  @ApiProperty({ example: 3240.5, nullable: true, description: 'In reais' })
+  averageMonthlySalary!: number | null;
+}
+
+class CnaeDivisionEmploymentResponseDTO {
+  @ApiProperty({ example: '47' })
+  code!: string;
+
+  @ApiProperty({ example: 'Comércio; reparação de veículos automotores e motocicletas' })
+  name!: string;
+
+  @ApiProperty({ example: 98000 })
+  companies!: number;
+
+  @ApiProperty({ example: 780000 })
+  occupiedPersons!: number;
+
+  @ApiProperty({ example: 690000 })
+  salariedPersons!: number;
+
+  @ApiProperty({ example: 2100000 })
+  salariesThousandBrl!: number;
+
+  @ApiProperty({
+    example: 0.19,
+    description: 'Fraction of the occupied persons of the municipality',
+  })
+  share!: number;
+}
+
+class MunicipalityEmploymentResponseDTO {
+  @ApiProperty({ example: { code: '3550308', name: 'São Paulo', uf: 'SP' } })
+  municipality!: { code: string; name: string | null; uf: string | null };
+
+  @ApiProperty({ example: '2024', nullable: true })
+  reference!: string | null;
+
+  @ApiProperty({ type: EmploymentTotalsResponseDTO })
+  totals!: EmploymentTotalsResponseDTO;
+
+  @ApiProperty({ type: CnaeDivisionEmploymentResponseDTO, isArray: true })
+  divisions!: CnaeDivisionEmploymentResponseDTO[];
+}
+
 @ApiTags('Geo')
 @Controller('geo')
 export class GeoController {
@@ -351,7 +412,22 @@ export class GeoController {
     @Inject(GetMunicipalityStatisticsUseCase)
     private readonly getMunicipalityStatistics: GetMunicipalityStatisticsUseCase,
     @Inject(GetUfStatisticsUseCase) private readonly getUfStatistics: GetUfStatisticsUseCase,
+    @Inject(GetMunicipalityEmploymentUseCase)
+    private readonly getMunicipalityEmployment: GetMunicipalityEmploymentUseCase,
   ) {}
+
+  @Get('stats/municipalities/:code/employment')
+  @Authenticated()
+  @ApiOperation({ summary: 'Formal employment by CNAE division (CEMPRE) of a municipality' })
+  @ApiQuery({ name: 'limit', required: false, description: 'How many divisions to rank (max 50)' })
+  @ApiOkResponse({ type: MunicipalityEmploymentResponseDTO })
+  async municipalityEmployment(
+    @Param(new ZodValidationPipe(GetMunicipalityStatisticsDTO))
+    params: GetMunicipalityStatisticsInputDTO,
+    @Query(new ZodValidationPipe(StatisticsQueryDTO)) query: StatisticsQueryInputDTO,
+  ) {
+    return this.getMunicipalityEmployment.execute(params.code, query);
+  }
 
   @Get('stats/municipalities/:code')
   @Authenticated()

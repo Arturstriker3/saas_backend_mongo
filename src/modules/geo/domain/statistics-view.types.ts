@@ -29,3 +29,36 @@ export interface UfStatistics {
   cnaeCount: number;
   topCnaes: CnaeRankEntry[];
 }
+
+/** One CNAE division of the IBGE economic registry (CEMPRE). */
+export interface CnaeDivisionEmployment {
+  code: string;
+  name: string;
+  companies: number;
+  occupiedPersons: number;
+  salariedPersons: number;
+  salariesThousandBrl: number;
+  /** Fraction of the occupied persons of the municipality. */
+  share: number;
+}
+
+export interface EmploymentTotals {
+  companies: number;
+  occupiedPersons: number;
+  salariedPersons: number;
+  salariesThousandBrl: number;
+  /** Salaries divided by the salaried persons and by twelve months, in reais. */
+  averageMonthlySalary: number | null;
+}
+
+export interface MunicipalityEmployment {
+  municipality: {
+    code: string;
+    name: string | null;
+    uf: string | null;
+  };
+  /** Year the figures refer to; null when the municipality has no record. */
+  reference: string | null;
+  totals: EmploymentTotals;
+  divisions: CnaeDivisionEmployment[];
+}

@@ -4,7 +4,11 @@ import {
   STATISTICS_READ_REPOSITORY,
   type StatisticsReadRepository,
 } from '../../domain/statistics-read.repository.interface';
-import type { MunicipalityStatistics, UfStatistics } from '../../domain/statistics-view.types';
+import type {
+  MunicipalityEmployment,
+  MunicipalityStatistics,
+  UfStatistics,
+} from '../../domain/statistics-view.types';
 
 export const StatisticsQueryDTO = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),
@@ -37,10 +41,7 @@ export class GetMunicipalityStatisticsUseCase {
    * @param query - How many activities to rank.
    * @returns The totals, the population and the top CNAEs.
    */
-  async execute(
-    code: string,
-    query: StatisticsQueryInputDTO,
-  ): Promise<MunicipalityStatistics> {
+  async execute(code: string, query: StatisticsQueryInputDTO): Promise<MunicipalityStatistics> {
     const statistics = await this.statistics.municipality(code, query.limit);
     if (!statistics) throw new NotFoundException(`Municipality ${code} not found`);
 
@@ -66,5 +67,26 @@ export class GetUfStatisticsUseCase {
     if (!statistics) throw new NotFoundException(`State ${uf} not found`);
 
     return statistics;
+  }
+}
+
+@Injectable()
+export class GetMunicipalityEmploymentUseCase {
+  constructor(
+    @Inject(STATISTICS_READ_REPOSITORY)
+    private readonly statistics: StatisticsReadRepository,
+  ) {}
+
+  /**
+   * Reads the formal employment (CEMPRE) of a municipality by CNAE division.
+   * @param code - IBGE municipality code.
+   * @param query - How many divisions to rank.
+   * @returns The totals and the ranking.
+   */
+  async execute(code: string, query: StatisticsQueryInputDTO): Promise<MunicipalityEmployment> {
+    const employment = await this.statistics.employment(code, query.limit);
+    if (!employment) throw new NotFoundException(`Municipality ${code} not found`);
+
+    return employment;
   }
 }

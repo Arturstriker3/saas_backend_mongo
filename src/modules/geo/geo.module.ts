@@ -8,6 +8,7 @@ import { ListEstablishmentsUseCase } from './application/use-cases/list-establis
 import { ListRegionsUseCase } from './application/use-cases/list-regions.use-case';
 import { SearchEstablishmentsUseCase } from './application/use-cases/search-establishments.use-case';
 import {
+  GetMunicipalityEmploymentUseCase,
   GetMunicipalityStatisticsUseCase,
   GetUfStatisticsUseCase,
 } from './application/use-cases/get-statistics.use-case';
@@ -44,6 +45,7 @@ import { GeoController } from './presentation/rest/geo.controller';
     GetCompanyUseCase,
     GetMunicipalityStatisticsUseCase,
     GetUfStatisticsUseCase,
+    GetMunicipalityEmploymentUseCase,
   ],
 })
 export class GeoModule {}

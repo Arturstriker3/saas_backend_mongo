@@ -4,6 +4,8 @@ import { GEO_KYSELY, type GeoDatabase } from '../../../common/database/geo/geo.c
 import type { StatisticsReadRepository } from '../domain/statistics-read.repository.interface';
 import type {
   CnaeRankEntry,
+  EmploymentTotals,
+  MunicipalityEmployment,
   MunicipalityStatistics,
   UfStatistics,
 } from '../domain/statistics-view.types';
@@ -14,6 +16,19 @@ interface RankRow {
   establishments: number;
   total: number;
   cnaeCount: number;
+}
+
+interface DivisionRow {
+  code: string;
+  name: string;
+  companies: number;
+  occupiedPersons: number;
+  salariedPersons: number;
+  salariesThousandBrl: number;
+  totalCompanies: number;
+  totalOccupied: number;
+  totalSalaried: number;
+  totalSalaries: number;
 }
 
 interface Ranking {
@@ -27,7 +42,11 @@ export class StatisticsRepositoryPostgis implements StatisticsReadRepository {
   constructor(@Inject(GEO_KYSELY) private readonly db: GeoDatabase) {}
 
   async municipality(code: string, limit: number): Promise<MunicipalityStatistics | null> {
-    const { rows } = await sql<{ name: string | null; uf: string | null; population: number | null }>`
+    const { rows } = await sql<{
+      name: string | null;
+      uf: string | null;
+      population: number | null;
+    }>`
       SELECT locality.name AS "name",
              locality.uf_sigla AS "uf",
              (SELECT indicator.value::float8
@@ -45,7 +64,12 @@ export class StatisticsRepositoryPostgis implements StatisticsReadRepository {
     const municipality = rows[0];
     if (!municipality) return null;
 
-    const ranking = await this.rank('geo.mv_establishment_municipality_cnae', 'municipality_code', code, limit);
+    const ranking = await this.rank(
+      'geo.mv_establishment_municipality_cnae',
+      'municipality_code',
+      code,
+      limit,
+    );
 
     return {
       municipality: {
@@ -79,6 +103,90 @@ export class StatisticsRepositoryPostgis implements StatisticsReadRepository {
     return {
       uf: { code: ufCode, sigla: state.sigla, name: state.name },
       ...ranking,
+    };
+  }
+
+  /**
+   * Reads the formal employment of one municipality from CEMPRE, by CNAE
+   * division, for the most recent year the municipality reports.
+   * @param code - IBGE municipality code.
+   * @param limit - How many divisions to rank.
+   * @returns The totals and the ranking, or null for an unknown code.
+   */
+  async employment(code: string, limit: number): Promise<MunicipalityEmployment | null> {
+    const { rows: header } = await sql<{
+      name: string | null;
+      uf: string | null;
+      reference: string | null;
+    }>`
+      SELECT locality.name AS "name",
+             locality.uf_sigla AS "uf",
+             (SELECT max(employment.reference)
+                FROM geo.municipality_cnae_employment AS employment
+               WHERE employment.municipality_code = locality.ibge_code) AS "reference"
+      FROM geo.locality AS locality
+      WHERE locality.level = 'municipality'
+        AND locality.ibge_code = ${code}
+      LIMIT 1
+    `.execute(this.db);
+
+    const municipality = header[0];
+    if (!municipality) return null;
+
+    const reference = municipality.reference;
+    if (!reference) {
+      return {
+        municipality: { code, name: municipality.name, uf: municipality.uf },
+        reference: null,
+        totals: emptyTotals(),
+        divisions: [],
+      };
+    }
+
+    const { rows } = await sql<DivisionRow>`
+      SELECT employment.cnae_code AS "code",
+             division.name AS "name",
+             employment.companies AS "companies",
+             employment.occupied_persons AS "occupiedPersons",
+             employment.salaried_persons AS "salariedPersons",
+             employment.salaries_thousand_brl::float8 AS "salariesThousandBrl",
+             (sum(employment.companies) OVER ())::int AS "totalCompanies",
+             (sum(employment.occupied_persons) OVER ())::int AS "totalOccupied",
+             (sum(employment.salaried_persons) OVER ())::int AS "totalSalaried",
+             (sum(employment.salaries_thousand_brl) OVER ())::float8 AS "totalSalaries"
+      FROM geo.municipality_cnae_employment AS employment
+      JOIN geo.cnae_division AS division ON division.code = employment.cnae_code
+      WHERE employment.municipality_code = ${code}
+        AND employment.reference = ${reference}
+      ORDER BY employment.occupied_persons DESC, employment.cnae_code
+      LIMIT ${limit}
+    `.execute(this.db);
+
+    const first = rows[0];
+    const totalOccupied = first?.totalOccupied ?? 0;
+    const totalSalaried = first?.totalSalaried ?? 0;
+    const totalSalaries = first?.totalSalaries ?? 0;
+
+    return {
+      municipality: { code, name: municipality.name, uf: municipality.uf },
+      reference,
+      totals: {
+        companies: first?.totalCompanies ?? 0,
+        occupiedPersons: totalOccupied,
+        salariedPersons: totalSalaried,
+        salariesThousandBrl: totalSalaries,
+        averageMonthlySalary:
+          totalSalaried > 0 ? (totalSalaries * 1000) / (totalSalaried * 12) : null,
+      },
+      divisions: rows.map((row) => ({
+        code: row.code,
+        name: row.name,
+        companies: row.companies,
+        occupiedPersons: row.occupiedPersons,
+        salariedPersons: row.salariedPersons,
+        salariesThousandBrl: row.salariesThousandBrl,
+        share: totalOccupied > 0 ? row.occupiedPersons / totalOccupied : 0,
+      })),
     };
   }
 
@@ -143,4 +251,14 @@ export class StatisticsRepositoryPostgis implements StatisticsReadRepository {
 
     return rows[0]?.code ?? null;
   }
+}
+
+function emptyTotals(): EmploymentTotals {
+  return {
+    companies: 0,
+    occupiedPersons: 0,
+    salariedPersons: 0,
+    salariesThousandBrl: 0,
+    averageMonthlySalary: null,
+  };
 }

@@ -307,6 +307,26 @@ Write rules:
 - `discoverReference()` reads the last period the aggregate publishes; the API uses `-`, `...` and `X` for missing values, which are dropped.
 - The publisher replaces only the `(indicator_key, reference)` it is writing; other years stay.
 
+### Formal employment (CEMPRE)
+
+`geo.municipality_cnae_employment` is the formal side of the economy: the CNPJ registry says who exists, CEMPRE says how many people each activity employs and how much it pays.
+
+| Column                                      | Source                                                      |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| `municipality_code`, `cnae_code` (2 digits) | classificação CNAE 2.0 do SIDRA, nível divisão              |
+| `companies`                                 | variável 2585 — número de empresas e outras organizações    |
+| `occupied_persons`, `salaried_persons`      | variáveis 707 e 708                                         |
+| `salaries_thousand_brl`                     | variável 662 — salários e outras remunerações, em mil reais |
+| `geo.cnae_division.name`                    | nome da divisão publicado pelo próprio agregado             |
+
+- The grain is the **CNAE division**, not the class: SIDRA only serves class level for municipalities with 50 000 inhabitants or more, so a class-grain table would be partial exactly where it matters. `cnae_code` joins `geo.establishment.cnae_principal` by its first two digits.
+- The reference is the **year** (2022, 2023, 2024 at the time of writing), so the yearly series accumulates instead of replacing the previous vintage.
+- One request per division: the API answers **500** when a single call crosses every CNAE category with every municipality, and `LIKE`-style discovery is not available — the division category ids are opaque (6 digits) and only the name carries the code, so the adapter reads the national total once to map `01 Agricultura…` to an id and then asks for one division at a time (87 requests, ~15 min).
+- Mid-division the API mixes higher levels in the same payload (section, division, group and class are all categories of classification 12762); the adapter keeps only names that start with two digits and a space.
+- A division with no company in a municipality is not written, so the table has ~5 500 rows per division instead of a dense grid; the 2024 edition published 232 735 rows over 86 divisions and 5 570 municipalities.
+- Below 180 000 rows the publish is refused — a silent failure of one division would otherwise shrink the country.
+- `GET /geo/stats/municipalities/:code/employment` reads it: totals (companies, occupied, salaried, salaries, average monthly salary) plus the top divisions by occupied persons.
+
 ### Addresses (CNEFE)
 
 `geo.address` is the CNEFE 2022 base: ~111M addresses with a point each, published from 27 state archives (`{uf}_{sigla}.zip`) at `Arquivos_CNEFE/CSV/UF`.
@@ -455,6 +475,8 @@ The v3 malhas API covers states and municipalities only. Districts, neighborhood
 | `rfb_simples`        | MEI and Simples adoption            | estabelecimento            | monthly | bulk   | stable    | open, cite RFB      |
 | `mdic_comex`         | exports and imports                 | município × SH4            | monthly | bulk   | stable    | open, cite MDIC     |
 | `senatran_frota`     | vehicles, income proxy              | município                  | monthly | bulk   | semi      | open                |
+
+`ibge_cempre` is the first dataset of this wave in production — see **Formal employment (CEMPRE)** for what it stores and how it is extracted.
 
 ### Wave 3 — differentiation
 

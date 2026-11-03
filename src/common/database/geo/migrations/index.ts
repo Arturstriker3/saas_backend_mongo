@@ -16,6 +16,7 @@ import { migration014HealthAddresses } from './014_health_addresses';
 import { migration015AddressKey } from './015_address_key';
 import { migration016EstablishmentListing } from './016_establishment_listing';
 import { migration017Statistics } from './017_statistics';
+import { migration018Cempre } from './018_cempre';
 
 export const geoMigrations: Record<string, Migration> = {
   '001_initial': migration001Initial,
@@ -35,4 +36,5 @@ export const geoMigrations: Record<string, Migration> = {
   '015_address_key': migration015AddressKey,
   '016_establishment_listing': migration016EstablishmentListing,
   '017_statistics': migration017Statistics,
+  '018_cempre': migration018Cempre,
 };
