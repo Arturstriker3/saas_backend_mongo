@@ -366,19 +366,34 @@ Write rules:
 - Heavy aggregations read from materialized views refreshed at publish time.
 - Tiles: `ST_TileEnvelope` + `ST_AsMVT`, versioned URL `/geo/tiles/{version}/{layer}/{z}/{x}/{y}.mvt`, `Cache-Control: public, max-age=31536000, immutable`.
 
+### Establishment endpoints
+
+| Endpoint                                      | Answers                                                                  | Keyset                             |
+| --------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------- |
+| `GET /geo/establishments/:cnpj`               | one establishment with the razão social, the CNAE and the municipality   | `establishment_pkey`               |
+| `GET /geo/companies/:cnpjBasico`              | the company root, the branch counts and the branches, headquarters first | `company_pkey`, then `cnpj_basico` |
+| `GET /geo/establishments?municipality=&cnae=` | active establishments of a municipality, ordered by CNAE and CNPJ        | index scan + `cursor`              |
+| `GET /geo/establishments/search?q=`           | active establishments whose company name contains the term               | top-20 by similarity               |
+
+- The list is **keyset paginated**, never `OFFSET`: `nextCursor` carries `"<cnae>:<cnpj>"` and the next page seeks straight to it (0.2 ms deep in a 2.5M row municipality; `OFFSET 500000` took 191 s on the same data).
+- `cnae` is a **prefix** and is expanded into the closed range the index can seek: `5611` becomes `5611000..5611999`. `LIKE '5611%'` has no lower bound, so the ordered scan started at the first CNAE of the municipality and filtered 1.5M rows.
+- The list serves **active** establishments only (`registration_status = 2`), which is what the partial index covers. Closed branches appear in the detail and in the company profile.
+- Search covers the **razão social**, not the trade name: a common word like `hortifruti` matches 20 000 trade names, and every match costs a heap fetch in the 35 GB table — 38 s on cold storage. The `establishment_trade_name_trgm` index stays for a future denormalized search table.
+- Everything is a primary key lookup or an ordered index scan; the measured times on 73.8M establishments are 34–100 ms for the detail and the company profile, 94 ms for a cold first page and ~0.4 s for the trigram search on a warm cache.
+
 ### Query indexes
 
 The CNPJ snapshot is published through load tables and a swap, so the indexes are part of the publisher (`TARGETS`), not only of the migration: whatever the swap does not rebuild disappears on the next publish.
 
-| Index                                     | Serves                                                       |
-| ----------------------------------------- | ------------------------------------------------------------ |
-| `establishment_pkey` (`cnpj`)             | lookup of one establishment                                  |
-| `establishment_company` (`cnpj_basico`)   | all establishments of a company                              |
-| `establishment_municipality_cnae`         | counts per municipality and CNAE, including closed companies |
-| `establishment_active_municipality_cnae`  | the same, restricted to `registration_status = 2` (market)   |
-| `establishment_trade_name_trgm` (GIN)     | `ILIKE '%…%'` on the trade name, non-null rows only          |
-| `company_pkey`, `company_legal_name_trgm` | razão social by code, and by partial text                    |
-| `cnae_pkey`                               | CNAE description                                             |
+| Index                                     | Serves                                                                                                                     |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `establishment_pkey` (`cnpj`)             | lookup of one establishment                                                                                                |
+| `establishment_company` (`cnpj_basico`)   | all establishments of a company                                                                                            |
+| `establishment_municipality_cnae`         | counts per municipality and CNAE, including closed companies                                                               |
+| `establishment_active_municipality_cnae`  | `(municipality_code, cnae_principal, cnpj)` for `registration_status = 2`: the paginated listing of a municipality by CNAE |
+| `establishment_trade_name_trgm` (GIN)     | `ILIKE '%…%'` on the trade name, non-null rows only                                                                        |
+| `company_pkey`, `company_legal_name_trgm` | razão social by code, and by partial text                                                                                  |
+| `cnae_pkey`                               | CNAE description                                                                                                           |
 
 Trigram search needs `pg_trgm` (created by migration `009`). The published tables are **logged**: the mirror is created by `LIKE`, which does not carry persistence, but the published snapshot must survive a crash recovery.
 

@@ -7,6 +7,28 @@ import {
   GetRegionUseCase,
   type GetRegionParamsInputDTO,
 } from '../../application/use-cases/get-region.use-case';
+import {
+  GetCompanyParamsDTO,
+  GetCompanyQueryDTO,
+  GetCompanyUseCase,
+  type GetCompanyParamsInputDTO,
+  type GetCompanyQueryInputDTO,
+} from '../../application/use-cases/get-company.use-case';
+import {
+  GetEstablishmentParamsDTO,
+  GetEstablishmentUseCase,
+  type GetEstablishmentParamsInputDTO,
+} from '../../application/use-cases/get-establishment.use-case';
+import {
+  ListEstablishmentsDTO,
+  ListEstablishmentsUseCase,
+  type ListEstablishmentsInputDTO,
+} from '../../application/use-cases/list-establishments.use-case';
+import {
+  SearchEstablishmentsDTO,
+  SearchEstablishmentsUseCase,
+  type SearchEstablishmentsInputDTO,
+} from '../../application/use-cases/search-establishments.use-case';
 import { GetCoverageUseCase } from '../../application/use-cases/get-coverage.use-case';
 import {
   ListChildrenDTO,
@@ -130,6 +152,126 @@ class CoverageResponseDTO {
   isStale!: boolean;
 }
 
+class CnaeResponseDTO {
+  @ApiProperty({ example: '5611201', nullable: true })
+  code!: string | null;
+
+  @ApiProperty({ example: 'Restaurantes e similares', nullable: true })
+  description!: string | null;
+}
+
+class EstablishmentAddressResponseDTO {
+  @ApiProperty({ example: 'RUA', nullable: true })
+  streetType!: string | null;
+
+  @ApiProperty({ example: 'AUGUSTA', nullable: true })
+  street!: string | null;
+
+  @ApiProperty({ example: '2000', nullable: true })
+  number!: string | null;
+
+  @ApiProperty({ example: 'LOJA 3', nullable: true })
+  complement!: string | null;
+
+  @ApiProperty({ example: 'JARDIM PAULISTA', nullable: true })
+  neighborhood!: string | null;
+
+  @ApiProperty({ example: '01304000', nullable: true })
+  cep!: string | null;
+}
+
+class EstablishmentLocationResponseDTO {
+  @ApiProperty({ example: '3550308', nullable: true })
+  municipalityCode!: string | null;
+
+  @ApiProperty({ example: 'São Paulo', nullable: true })
+  municipalityName!: string | null;
+
+  @ApiProperty({ example: 'SP', nullable: true })
+  uf!: string | null;
+}
+
+class EstablishmentSummaryResponseDTO {
+  @ApiProperty({ example: '12345678000190' })
+  cnpj!: string;
+
+  @ApiProperty({ example: '12345678' })
+  cnpjBasico!: string;
+
+  @ApiProperty({ example: 'PADARIA DO ZE', nullable: true })
+  tradeName!: string | null;
+
+  @ApiProperty({ example: 'PADARIA DO ZE LTDA', nullable: true })
+  legalName!: string | null;
+
+  @ApiProperty({ example: true })
+  isHeadquarters!: boolean;
+
+  @ApiProperty({ example: 2, nullable: true })
+  registrationStatus!: number | null;
+
+  @ApiProperty({ example: 'Ativa', nullable: true })
+  registrationStatusLabel!: string | null;
+
+  @ApiProperty({ example: '2010-05-12', nullable: true })
+  openedOn!: string | null;
+
+  @ApiProperty({ type: CnaeResponseDTO })
+  cnae!: CnaeResponseDTO;
+
+  @ApiProperty({ type: EstablishmentAddressResponseDTO })
+  address!: EstablishmentAddressResponseDTO;
+
+  @ApiProperty({ type: EstablishmentLocationResponseDTO })
+  location!: EstablishmentLocationResponseDTO;
+}
+
+class EstablishmentDetailResponseDTO extends EstablishmentSummaryResponseDTO {
+  @ApiProperty({ type: RegionDatasetEvidenceDTO, nullable: true })
+  dataset!: RegionDatasetEvidenceDTO | null;
+}
+
+class EstablishmentPageResponseDTO {
+  @ApiProperty({ type: EstablishmentSummaryResponseDTO, isArray: true })
+  items!: EstablishmentSummaryResponseDTO[];
+
+  @ApiProperty({
+    example: '5611201:12345678000190',
+    nullable: true,
+    description: 'Send as `cursor` to read the next page; null on the last page',
+  })
+  nextCursor!: string | null;
+}
+
+class CompanyResponseDTO {
+  @ApiProperty({ example: '12345678' })
+  cnpjBasico!: string;
+
+  @ApiProperty({ example: 'PADARIA DO ZE LTDA' })
+  legalName!: string;
+
+  @ApiProperty({ example: '2062', nullable: true })
+  legalNatureCode!: string | null;
+
+  @ApiProperty({ example: '01', nullable: true })
+  sizeCode!: string | null;
+
+  @ApiProperty({ example: 5000, nullable: true })
+  capitalSocial!: number | null;
+
+  @ApiProperty({ example: 3 })
+  establishmentCount!: number;
+
+  @ApiProperty({ example: 2 })
+  activeEstablishmentCount!: number;
+
+  @ApiProperty({ type: EstablishmentSummaryResponseDTO, isArray: true })
+  establishments!: EstablishmentSummaryResponseDTO[];
+
+  @ApiProperty({ type: RegionDatasetEvidenceDTO, nullable: true })
+  dataset!: RegionDatasetEvidenceDTO | null;
+}
+
 @ApiTags('Geo')
 @Controller('geo')
 export class GeoController {
@@ -137,7 +279,64 @@ export class GeoController {
     @Inject(ListRegionsUseCase) private readonly listRegions: ListRegionsUseCase,
     @Inject(GetRegionUseCase) private readonly getRegion: GetRegionUseCase,
     @Inject(GetCoverageUseCase) private readonly getCoverage: GetCoverageUseCase,
+    @Inject(ListEstablishmentsUseCase)
+    private readonly listEstablishments: ListEstablishmentsUseCase,
+    @Inject(SearchEstablishmentsUseCase)
+    private readonly searchEstablishments: SearchEstablishmentsUseCase,
+    @Inject(GetEstablishmentUseCase)
+    private readonly getEstablishment: GetEstablishmentUseCase,
+    @Inject(GetCompanyUseCase) private readonly getCompany: GetCompanyUseCase,
   ) {}
+
+  @Get('establishments')
+  @Authenticated()
+  @ApiOperation({ summary: 'List active establishments of a municipality, by CNAE prefix' })
+  @ApiQuery({ name: 'municipality', required: true, description: 'IBGE municipality code' })
+  @ApiQuery({ name: 'cnae', required: false, description: 'CNAE prefix: 3, 5 or 7 digits' })
+  @ApiQuery({ name: 'cursor', required: false, description: 'nextCursor from the previous page' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiOkResponse({ type: EstablishmentPageResponseDTO })
+  async establishments(
+    @Query(new ZodValidationPipe(ListEstablishmentsDTO)) query: ListEstablishmentsInputDTO,
+  ) {
+    return this.listEstablishments.execute(query);
+  }
+
+  @Get('establishments/search')
+  @Authenticated()
+  @ApiOperation({ summary: 'Search establishments by the company legal name' })
+  @ApiQuery({ name: 'q', required: true, description: 'At least 3 characters' })
+  @ApiQuery({ name: 'municipality', required: false, description: 'IBGE municipality code' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiOkResponse({ type: EstablishmentSummaryResponseDTO, isArray: true })
+  async search(
+    @Query(new ZodValidationPipe(SearchEstablishmentsDTO)) query: SearchEstablishmentsInputDTO,
+  ) {
+    return this.searchEstablishments.execute(query);
+  }
+
+  @Get('establishments/:cnpj')
+  @Authenticated()
+  @ApiOperation({ summary: 'Establishment detail by CNPJ' })
+  @ApiOkResponse({ type: EstablishmentDetailResponseDTO })
+  async establishment(
+    @Param(new ZodValidationPipe(GetEstablishmentParamsDTO)) params: GetEstablishmentParamsInputDTO,
+  ) {
+    return this.getEstablishment.execute(params);
+  }
+
+  @Get('companies/:cnpjBasico')
+  @Authenticated()
+  @ApiOperation({ summary: 'Company profile with its establishments, headquarters first' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'offset', required: false })
+  @ApiOkResponse({ type: CompanyResponseDTO })
+  async company(
+    @Param(new ZodValidationPipe(GetCompanyParamsDTO)) params: GetCompanyParamsInputDTO,
+    @Query(new ZodValidationPipe(GetCompanyQueryDTO)) query: GetCompanyQueryInputDTO,
+  ) {
+    return this.getCompany.execute(params.cnpjBasico, query);
+  }
 
   @Get('regions')
   @Authenticated()

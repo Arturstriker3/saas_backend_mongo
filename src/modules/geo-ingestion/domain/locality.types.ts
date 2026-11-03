@@ -1,4 +1,4 @@
-import type { LocalityTable } from '../../../../common/database/geo/geo-db.types';
+import type { LocalityTable } from '../../../common/database/geo/geo-db.types';
 
 /** One row of the official IBGE code registry. */
 export interface LocalityInput {

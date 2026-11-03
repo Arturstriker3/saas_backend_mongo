@@ -74,7 +74,7 @@ const TARGETS: LoadTarget[] = [
       {
         temp: 'establishment_load_active_municipality_cnae',
         name: 'establishment_active_municipality_cnae',
-        columns: 'municipality_code, cnae_principal',
+        columns: 'municipality_code, cnae_principal, cnpj',
         where: 'registration_status = 2',
       },
       {

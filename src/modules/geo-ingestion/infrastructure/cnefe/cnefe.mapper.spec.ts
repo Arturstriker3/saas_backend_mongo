@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'bun:test';
 import { CNEFE_HEADER, isExpectedHeader, toAddressRecord } from './cnefe.mapper';
 
 const HEADER = CNEFE_HEADER.join(';');
