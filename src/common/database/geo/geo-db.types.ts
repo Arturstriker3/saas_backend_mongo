@@ -136,6 +136,26 @@ export interface CompanyTable {
   updated_at: Timestamp;
 }
 
+export interface LocalityTable {
+  level: 'state' | 'municipality';
+  ibge_code: string;
+  name: string;
+  search_name: string;
+  uf_code: string | null;
+  uf_sigla: string | null;
+  dataset_version_id: string | null;
+  updated_at: Timestamp;
+}
+
+export interface RegionIndicatorTable {
+  region_code: string;
+  indicator_key: string;
+  reference: string;
+  value: ColumnType<string, string | number, string | number>;
+  dataset_version_id: string | null;
+  updated_at: Timestamp;
+}
+
 export interface GeoDB {
   'geo.dataset_license': DatasetLicenseTable;
   'geo.dataset_version': DatasetVersionTable;
@@ -147,4 +167,6 @@ export interface GeoDB {
   'geo.cnae': CnaeTable;
   'geo.establishment': EstablishmentTable;
   'geo.company': CompanyTable;
+  'geo.locality': LocalityTable;
+  'geo.region_indicator': RegionIndicatorTable;
 }

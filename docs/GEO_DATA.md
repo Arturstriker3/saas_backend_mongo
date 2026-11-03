@@ -244,6 +244,11 @@ Every check reads the catalog, a small domain table or planner statistics. Nothi
 | `unlogged_tables`          | tables a crash recovery would truncate                                                                                            |
 | `region_states`            | states published from the malha                                                                                                   |
 | `region_municipalities`    | municipalities published versus the 5,571 the IBGE lists                                                                          |
+| `locality_municipalities`  | municipalities in the official IBGE code registry                                                                                 |
+| `locality_gap`             | codes the IBGE lists but the malha cannot serve                                                                                   |
+| `population_estimates`     | municipalities with a population estimate for the latest year                                                                     |
+| `address_rows`             | estimated rows of the CNEFE address base                                                                                          |
+| `address_geocoded`         | share of addresses with a point (`pg_stats.null_frac` on `geom`)                                                                  |
 | `region_orphans`           | municipalities whose parent is not a state                                                                                        |
 | `region_invalid_geometry`  | polygons rejected by `ST_IsValid`                                                                                                 |
 | `establishment_rows`       | estimated rows (`pg_class.reltuples`)                                                                                             |
@@ -282,6 +287,46 @@ Write rules:
 - Basics are upserted first (clearing income), then income fills the sectors that report it. Sectors without a responsible person stay `NULL` instead of inheriting a stale value: 458 772 of 468 099 rows carry income.
 - A row whose sector code is not 15 digits aborts the run — that is how a layout change or a leaked header gets caught before publishing.
 - `GET /geo/regions/:code` returns `indicators` for census tracts, with the dataset reference that produced it.
+
+### Official registry and municipality indicators
+
+`geo.locality` is the IBGE **localities API** published as its own dataset (`ibge_localidades`): states and municipalities with the official code, name, normalized search name and state. It is the reference for "which codes exist", not a copy of the malha — the two are compared by the `geo.locality_gap` view:
+
+| `gap`               | Meaning                                                          |
+| ------------------- | ---------------------------------------------------------------- |
+| `missing_in_region` | the IBGE lists the code, the malha cannot serve it (no geometry) |
+| `missing_in_source` | a region exists in the malha but not in the official registry    |
+
+- The registry is replaced in one transaction: ~5 600 rows, no staging table and no swap.
+- A code that disappears from the source is deleted, because the IBGE merged or extinguished it.
+- A small gap is normal (a municipality created after the malha vintage); `geo.data_health` only escalates when it grows.
+
+`geo.region_indicator` holds numeric attributes keyed by region. `ibge_estimativas` publishes `population` per municipality, one row per year, read from SIDRA aggregate 6579:
+
+- The reference is the estimate **year**, so the series accumulates instead of replacing the previous one.
+- `discoverReference()` reads the last period the aggregate publishes; the API uses `-`, `...` and `X` for missing values, which are dropped.
+- The publisher replaces only the `(indicator_key, reference)` it is writing; other years stay.
+
+### Addresses (CNEFE)
+
+`geo.address` is the CNEFE 2022 base: ~111M addresses with a point each, published from 27 state archives (`{uf}_{sigla}.zip`) at `Arquivos_CNEFE/CSV/UF`.
+
+| Column                                                                                  | Source                                                 |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `id`                                                                                    | `COD_UNICO_ENDERECO`                                   |
+| `uf_code`, `municipality_code`, `district_code`, `subdistrict_code`, `sector_code`      | `COD_*`                                                |
+| `cep`, `locality`, `street_type`, `street_title`, `street`, `street_number`, `modifier` | endereço                                               |
+| `complement`                                                                            | the five `NOM_COMP_ELEM`/`VAL_COMP_ELEM` pairs, joined |
+| `latitude`, `longitude`, `geom`                                                         | `LATITUDE`, `LONGITUDE` (SRID 4326)                    |
+| `geocode_level`, `species_code`, `establishment_name`                                   | `NV_GEO_COORD`, `COD_ESPECIE`, `DSC_ESTABELECIMENTO`   |
+
+- It is what turns the CNPJ into something a map can use: the registry carries no coordinate.
+- The CNEFE code identifies the **address**, not the record: a household and a shop on the same address share the code and differ by `species_code`. The primary key is `(id, species_code)`; a duplicate pair is a source defect and stops the publish.
+- Files are UTF-8 with a BOM and 34 columns. The adapter compares the header with the expected layout and refuses a shifted file — a shifted column would silently mis-geocode.
+- Each archive is downloaded, read as a stream and deleted before the next one. Peak disk usage is a single state, not the ~25 GB of the whole country.
+- The rows are written to `geo.address_load` without indexes, then the primary key, the btree indexes and the GiST index on `geom` are built once and the table is swapped in.
+- Below 90M rows the publish is refused: a partial download must never replace the live table.
+- Do not deduplicate with a self-join: at 111M rows it spilled 74 GB of temporary files and never finished. The primary key is built directly.
 
 ### Establishments
 

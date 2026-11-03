@@ -9,6 +9,11 @@ import { migration007Companies } from './007_companies';
 import { migration008EstablishmentAddress } from './008_establishment_address';
 import { migration009EstablishmentQueryIndexes } from './009_establishment_query_indexes';
 import { migration010DataHealth } from './010_data_health';
+import { migration011Foundation } from './011_foundation';
+import { migration012HealthFoundation } from './012_health_foundation';
+import { migration013Addresses } from './013_addresses';
+import { migration014HealthAddresses } from './014_health_addresses';
+import { migration015AddressKey } from './015_address_key';
 
 export const geoMigrations: Record<string, Migration> = {
   '001_initial': migration001Initial,
@@ -21,4 +26,9 @@ export const geoMigrations: Record<string, Migration> = {
   '008_establishment_address': migration008EstablishmentAddress,
   '009_establishment_query_indexes': migration009EstablishmentQueryIndexes,
   '010_data_health': migration010DataHealth,
+  '011_foundation': migration011Foundation,
+  '012_health_foundation': migration012HealthFoundation,
+  '013_addresses': migration013Addresses,
+  '014_health_addresses': migration014HealthAddresses,
+  '015_address_key': migration015AddressKey,
 };
