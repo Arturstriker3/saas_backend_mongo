@@ -17,6 +17,8 @@ import { migration015AddressKey } from './015_address_key';
 import { migration016EstablishmentListing } from './016_establishment_listing';
 import { migration017Statistics } from './017_statistics';
 import { migration018Cempre } from './018_cempre';
+import { migration019CnaeClass } from './019_cnae_class';
+import { migration020MunicipalityEmployment } from './020_municipality_employment';
 
 export const geoMigrations: Record<string, Migration> = {
   '001_initial': migration001Initial,
@@ -37,4 +39,6 @@ export const geoMigrations: Record<string, Migration> = {
   '016_establishment_listing': migration016EstablishmentListing,
   '017_statistics': migration017Statistics,
   '018_cempre': migration018Cempre,
+  '019_cnae_class': migration019CnaeClass,
+  '020_municipality_employment': migration020MunicipalityEmployment,
 };

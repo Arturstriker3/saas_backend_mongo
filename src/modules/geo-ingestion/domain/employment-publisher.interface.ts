@@ -4,13 +4,17 @@ import type {
   FinalizeDatasetInput,
   PublishDatasetResult,
 } from './dataset-publisher.interface';
-import type { CnaeDivisionInput, EmploymentRecord } from './employment.types';
+import type {
+  CnaeCategoryInput,
+  EmploymentRecord,
+  EmploymentTotalRecord,
+} from './employment.types';
 
 export const EMPLOYMENT_PUBLISHER = 'EMPLOYMENT_PUBLISHER';
 
 export interface EmploymentVersionInput extends DatasetStagingInput {
-  /** Written first: the fact table references the division. */
-  divisions: CnaeDivisionInput[];
+  /** Written first: the fact table references the class. */
+  categories: CnaeCategoryInput[];
 }
 
 export interface EmploymentFinalizeInput extends FinalizeDatasetInput {
@@ -20,13 +24,15 @@ export interface EmploymentFinalizeInput extends FinalizeDatasetInput {
 }
 
 /**
- * Publishes formal employment by municipality and CNAE division. Rows are
- * upserted per `(municipality_code, cnae_code, reference)`, so the yearly series
+ * Publishes formal employment by municipality and CNAE class. Rows are upserted
+ * per `(municipality_code, cnae_code, reference)`, so the yearly series
  * accumulates instead of replacing the previous vintage.
  */
 export interface EmploymentPublisher {
   begin(input: EmploymentVersionInput): Promise<string>;
   writeChunk(versionId: string, rows: EmploymentRecord[]): Promise<ChunkStats>;
+  /** One row per municipality, written after the classes: it is the total. */
+  writeTotals(versionId: string, rows: EmploymentTotalRecord[]): Promise<ChunkStats>;
   finalize(input: EmploymentFinalizeInput): Promise<PublishDatasetResult>;
   discard(datasetKey: string, versionId: string): Promise<void>;
 }

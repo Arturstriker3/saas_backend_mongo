@@ -6,9 +6,9 @@ import type { GeoDB } from '../geo-db.types';
  * CNAE division: the formal side of the economy that the CNPJ registry cannot
  * tell — how many people each activity actually employs and how much it pays.
  *
- * The grain is the CNAE division (2 digits) because that is the finest level
- * SIDRA serves for every municipality: class level exists only for municipalities
- * with 50 000 inhabitants or more.
+ * The grain is the CNAE division (2 digits) because it is the level that fits in
+ * one row per municipality and activity without a dense grid; the aggregate also
+ * serves group and class, which can be added later as a separate grain.
  */
 export const migration018Cempre = {
   async up(db: Kysely<GeoDB>): Promise<void> {

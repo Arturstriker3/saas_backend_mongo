@@ -309,23 +309,26 @@ Write rules:
 
 ### Formal employment (CEMPRE)
 
-`geo.municipality_cnae_employment` is the formal side of the economy: the CNPJ registry says who exists, CEMPRE says how many people each activity employs and how much it pays.
+`geo.municipality_cnae_employment` is the formal side of the economy: the CNPJ registry says who exists, CEMPRE says how many people each activity employs and how much it pays. `geo.municipality_employment` carries the municipality as a whole.
 
 | Column                                      | Source                                                      |
 | ------------------------------------------- | ----------------------------------------------------------- |
-| `municipality_code`, `cnae_code` (2 digits) | classificação CNAE 2.0 do SIDRA, nível divisão              |
+| `municipality_code`, `cnae_code` (4 digits) | classificação CNAE 2.0 do SIDRA, nível classe               |
 | `companies`                                 | variável 2585 — número de empresas e outras organizações    |
 | `occupied_persons`, `salaried_persons`      | variáveis 707 e 708                                         |
 | `salaries_thousand_brl`                     | variável 662 — salários e outras remunerações, em mil reais |
-| `geo.cnae_division.name`                    | nome da divisão publicado pelo próprio agregado             |
+| `geo.cnae_class.name`                       | nome da classe publicado pelo próprio agregado              |
 
-- The grain is the **CNAE division**, not the class: SIDRA only serves class level for municipalities with 50 000 inhabitants or more, so a class-grain table would be partial exactly where it matters. `cnae_code` joins `geo.establishment.cnae_principal` by its first two digits.
+- The grain is the **CNAE class** (4 digits), the same grain as the CNPJ registry's `cnae_principal` prefix, so establishments per class (ours) can be read against employed people per class (CEMPRE).
+- **IBGE withholds employment at this grain**: 65% of the class × municipality cells come with `companies` but with `X` instead of occupied persons and salaries. Summing the classes keeps 84% of the country's jobs (57,3 M of 68,0 M) and 99,6% of São Paulo's, but only 75% of a 22-thousand-people town. That is why the totals live in a separate table.
+- `geo.municipality_employment` has one row per municipality and year, read from the same aggregate **without the classification** — IBGE never withholds the total. It is the source of the endpoint's `totals`, and the denominator of each activity's `share`.
 - The reference is the **year** (2022, 2023, 2024 at the time of writing), so the yearly series accumulates instead of replacing the previous vintage.
-- One request per division: the API answers **500** when a single call crosses every CNAE category with every municipality, and `LIKE`-style discovery is not available — the division category ids are opaque (6 digits) and only the name carries the code, so the adapter reads the national total once to map `01 Agricultura…` to an id and then asks for one division at a time (87 requests, ~15 min).
-- Mid-division the API mixes higher levels in the same payload (section, division, group and class are all categories of classification 12762); the adapter keeps only names that start with two digits and a space.
-- A division with no company in a municipality is not written, so the table has ~5 500 rows per division instead of a dense grid; the 2024 edition published 232 735 rows over 86 divisions and 5 570 municipalities.
-- Below 180 000 rows the publish is refused — a silent failure of one division would otherwise shrink the country.
-- `GET /geo/stats/municipalities/:code/employment` reads it: totals (companies, occupied, salaried, salaries, average monthly salary) plus the top divisions by occupied persons.
+- Readers only see the **published** vintage: the rows carry `dataset_version_id` and every query filters it against the `published` version of `ibge_cempre`, so a running ingest does not expose a half-filled country.
+- Two classes per request: the API answers **500** at three. `LIKE`-style discovery is not available either — the category ids are opaque (6 digits) and only the name carries the code (`47.81-4 Comércio varejista…`), so the adapter reads the national total once to map each class to an id and then asks for two classes at a time with all municipalities (336 requests, ~1,5 h), plus one request for the municipality totals.
+- The payload mixes every level of classification 12762 (section, division, group and class); the adapter keeps only names that match `NN.NN-N Label`.
+- A class with no company in a municipality is not written, so the table is not a dense grid; the 2024 edition published 735 880 rows over 667 classes and 5 570 municipalities.
+- Below 600 000 class rows or fewer than 5 400 municipalities the publish is refused — a wave of silently empty responses would otherwise shrink the country.
+- `GET /geo/stats/municipalities/:code/employment` reads it: totals (companies, occupied, salaried, salaries, average monthly salary) plus the top activities (classes) by occupied persons.
 
 ### Addresses (CNEFE)
 

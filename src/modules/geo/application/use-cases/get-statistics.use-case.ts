@@ -78,9 +78,9 @@ export class GetMunicipalityEmploymentUseCase {
   ) {}
 
   /**
-   * Reads the formal employment (CEMPRE) of a municipality by CNAE division.
+   * Reads the formal employment (CEMPRE) of a municipality by CNAE class.
    * @param code - IBGE municipality code.
-   * @param query - How many divisions to rank.
+   * @param query - How many activities to rank.
    * @returns The totals and the ranking.
    */
   async execute(code: string, query: StatisticsQueryInputDTO): Promise<MunicipalityEmployment> {

@@ -163,9 +163,27 @@ export interface CnaeDivisionTable {
   updated_at: Timestamp;
 }
 
+export interface CnaeClassTable {
+  code: string;
+  name: string;
+  dataset_version_id: string | null;
+  updated_at: Timestamp;
+}
+
 export interface MunicipalityCnaeEmploymentTable {
   municipality_code: string;
   cnae_code: string;
+  reference: string;
+  companies: number;
+  occupied_persons: number;
+  salaried_persons: number;
+  salaries_thousand_brl: ColumnType<string, string | number, string | number>;
+  dataset_version_id: string | null;
+  updated_at: Timestamp;
+}
+
+export interface MunicipalityEmploymentTable {
+  municipality_code: string;
   reference: string;
   companies: number;
   occupied_persons: number;
@@ -185,9 +203,11 @@ export interface GeoDB {
   'geo.sector_indicator': SectorIndicatorTable;
   'geo.cnae': CnaeTable;
   'geo.cnae_division': CnaeDivisionTable;
+  'geo.cnae_class': CnaeClassTable;
   'geo.establishment': EstablishmentTable;
   'geo.company': CompanyTable;
   'geo.locality': LocalityTable;
   'geo.region_indicator': RegionIndicatorTable;
   'geo.municipality_cnae_employment': MunicipalityCnaeEmploymentTable;
+  'geo.municipality_employment': MunicipalityEmploymentTable;
 }

@@ -355,11 +355,14 @@ class EmploymentTotalsResponseDTO {
   averageMonthlySalary!: number | null;
 }
 
-class CnaeDivisionEmploymentResponseDTO {
-  @ApiProperty({ example: '47' })
+class CnaeActivityEmploymentResponseDTO {
+  @ApiProperty({ example: 'class', enum: ['class'] })
+  level!: 'class';
+
+  @ApiProperty({ example: '4781-4' })
   code!: string;
 
-  @ApiProperty({ example: 'Comércio; reparação de veículos automotores e motocicletas' })
+  @ApiProperty({ example: 'Comércio varejista de artigos do vestuário e acessórios' })
   name!: string;
 
   @ApiProperty({ example: 98000 })
@@ -376,7 +379,9 @@ class CnaeDivisionEmploymentResponseDTO {
 
   @ApiProperty({
     example: 0.19,
-    description: 'Fraction of the occupied persons of the municipality',
+    description:
+      'Fraction of the occupied persons of the municipality; classes whose employment ' +
+      'IBGE withholds do not appear',
   })
   share!: number;
 }
@@ -391,8 +396,8 @@ class MunicipalityEmploymentResponseDTO {
   @ApiProperty({ type: EmploymentTotalsResponseDTO })
   totals!: EmploymentTotalsResponseDTO;
 
-  @ApiProperty({ type: CnaeDivisionEmploymentResponseDTO, isArray: true })
-  divisions!: CnaeDivisionEmploymentResponseDTO[];
+  @ApiProperty({ type: CnaeActivityEmploymentResponseDTO, isArray: true })
+  activities!: CnaeActivityEmploymentResponseDTO[];
 }
 
 @ApiTags('Geo')
@@ -418,8 +423,8 @@ export class GeoController {
 
   @Get('stats/municipalities/:code/employment')
   @Authenticated()
-  @ApiOperation({ summary: 'Formal employment by CNAE division (CEMPRE) of a municipality' })
-  @ApiQuery({ name: 'limit', required: false, description: 'How many divisions to rank (max 50)' })
+  @ApiOperation({ summary: 'Formal employment by CNAE class (CEMPRE) of a municipality' })
+  @ApiQuery({ name: 'limit', required: false, description: 'How many activities to rank (max 50)' })
   @ApiOkResponse({ type: MunicipalityEmploymentResponseDTO })
   async municipalityEmployment(
     @Param(new ZodValidationPipe(GetMunicipalityStatisticsDTO))

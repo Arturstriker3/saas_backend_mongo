@@ -30,8 +30,9 @@ export interface UfStatistics {
   topCnaes: CnaeRankEntry[];
 }
 
-/** One CNAE division of the IBGE economic registry (CEMPRE). */
-export interface CnaeDivisionEmployment {
+/** One CNAE class (4 digits) of the IBGE economic registry (CEMPRE). */
+export interface CnaeActivityEmployment {
+  level: 'class';
   code: string;
   name: string;
   companies: number;
@@ -60,5 +61,5 @@ export interface MunicipalityEmployment {
   /** Year the figures refer to; null when the municipality has no record. */
   reference: string | null;
   totals: EmploymentTotals;
-  divisions: CnaeDivisionEmployment[];
+  activities: CnaeActivityEmployment[];
 }
