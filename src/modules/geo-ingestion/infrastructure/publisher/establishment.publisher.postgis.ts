@@ -95,6 +95,13 @@ const TARGETS: LoadTarget[] = [
 ];
 
 /**
+ * Aggregate views created by migration `017`. They are refreshed inside the swap
+ * transaction, so the numbers and the establishments they describe switch in the
+ * same commit. The municipality view comes first: the UF view is derived from it.
+ */
+const STATISTIC_VIEWS = ['geo.mv_establishment_municipality_cnae', 'geo.mv_establishment_uf_cnae'];
+
+/**
  * Publishes the CNPJ registry by loading a mirror table and swapping it in.
  *
  * A monthly snapshot replaces the whole dataset, so merging row by row is pure
@@ -290,6 +297,10 @@ export class EstablishmentPublisherPostgis implements EstablishmentPublisher {
 
       for (const target of TARGETS) {
         await this.swap(trx, target);
+      }
+
+      for (const view of STATISTIC_VIEWS) {
+        await sql`REFRESH MATERIALIZED VIEW ${sql.table(view)}`.execute(trx);
       }
 
       await sql`

@@ -15,6 +15,16 @@ import {
   type GetCompanyQueryInputDTO,
 } from '../../application/use-cases/get-company.use-case';
 import {
+  GetMunicipalityStatisticsDTO,
+  GetMunicipalityStatisticsUseCase,
+  GetUfStatisticsDTO,
+  GetUfStatisticsUseCase,
+  StatisticsQueryDTO,
+  type GetMunicipalityStatisticsInputDTO,
+  type GetUfStatisticsInputDTO,
+  type StatisticsQueryInputDTO,
+} from '../../application/use-cases/get-statistics.use-case';
+import {
   GetEstablishmentParamsDTO,
   GetEstablishmentUseCase,
   type GetEstablishmentParamsInputDTO,
@@ -272,6 +282,58 @@ class CompanyResponseDTO {
   dataset!: RegionDatasetEvidenceDTO | null;
 }
 
+class CnaeRankResponseDTO {
+  @ApiProperty({ example: '5611201' })
+  code!: string;
+
+  @ApiProperty({ example: 'Restaurantes e similares', nullable: true })
+  description!: string | null;
+
+  @ApiProperty({ example: 40545 })
+  establishments!: number;
+
+  @ApiProperty({
+    example: 0.0161,
+    description: 'Fraction of the active establishments of the scope',
+  })
+  share!: number;
+}
+
+class MunicipalityStatisticsResponseDTO {
+  @ApiProperty({
+    example: { code: '3550308', name: 'São Paulo', uf: 'SP', population: 11911337 },
+  })
+  municipality!: {
+    code: string;
+    name: string | null;
+    uf: string | null;
+    population: number | null;
+  };
+
+  @ApiProperty({ example: 2513555 })
+  activeEstablishments!: number;
+
+  @ApiProperty({ example: 1053, description: 'Distinct CNAEs with at least one establishment' })
+  cnaeCount!: number;
+
+  @ApiProperty({ type: CnaeRankResponseDTO, isArray: true })
+  topCnaes!: CnaeRankResponseDTO[];
+}
+
+class UfStatisticsResponseDTO {
+  @ApiProperty({ example: { code: '35', sigla: 'SP', name: 'São Paulo' } })
+  uf!: { code: string; sigla: string | null; name: string | null };
+
+  @ApiProperty({ example: 5880000 })
+  activeEstablishments!: number;
+
+  @ApiProperty({ example: 1200 })
+  cnaeCount!: number;
+
+  @ApiProperty({ type: CnaeRankResponseDTO, isArray: true })
+  topCnaes!: CnaeRankResponseDTO[];
+}
+
 @ApiTags('Geo')
 @Controller('geo')
 export class GeoController {
@@ -286,7 +348,35 @@ export class GeoController {
     @Inject(GetEstablishmentUseCase)
     private readonly getEstablishment: GetEstablishmentUseCase,
     @Inject(GetCompanyUseCase) private readonly getCompany: GetCompanyUseCase,
+    @Inject(GetMunicipalityStatisticsUseCase)
+    private readonly getMunicipalityStatistics: GetMunicipalityStatisticsUseCase,
+    @Inject(GetUfStatisticsUseCase) private readonly getUfStatistics: GetUfStatisticsUseCase,
   ) {}
+
+  @Get('stats/municipalities/:code')
+  @Authenticated()
+  @ApiOperation({ summary: 'Active establishments and top CNAEs of a municipality' })
+  @ApiQuery({ name: 'limit', required: false, description: 'How many CNAEs to rank (max 50)' })
+  @ApiOkResponse({ type: MunicipalityStatisticsResponseDTO })
+  async municipalityStatistics(
+    @Param(new ZodValidationPipe(GetMunicipalityStatisticsDTO))
+    params: GetMunicipalityStatisticsInputDTO,
+    @Query(new ZodValidationPipe(StatisticsQueryDTO)) query: StatisticsQueryInputDTO,
+  ) {
+    return this.getMunicipalityStatistics.execute(params.code, query);
+  }
+
+  @Get('stats/ufs/:uf')
+  @Authenticated()
+  @ApiOperation({ summary: 'Active establishments and top CNAEs of a state' })
+  @ApiQuery({ name: 'limit', required: false, description: 'How many CNAEs to rank (max 50)' })
+  @ApiOkResponse({ type: UfStatisticsResponseDTO })
+  async ufStatistics(
+    @Param(new ZodValidationPipe(GetUfStatisticsDTO)) params: GetUfStatisticsInputDTO,
+    @Query(new ZodValidationPipe(StatisticsQueryDTO)) query: StatisticsQueryInputDTO,
+  ) {
+    return this.getUfStatistics.execute(params.uf, query);
+  }
 
   @Get('establishments')
   @Authenticated()

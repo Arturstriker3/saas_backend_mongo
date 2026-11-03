@@ -381,6 +381,22 @@ Write rules:
 - Search covers the **razão social**, not the trade name: a common word like `hortifruti` matches 20 000 trade names, and every match costs a heap fetch in the 35 GB table — 38 s on cold storage. The `establishment_trade_name_trgm` index stays for a future denormalized search table.
 - Everything is a primary key lookup or an ordered index scan; the measured times on 73.8M establishments are 34–100 ms for the detail and the company profile, 94 ms for a cold first page and ~0.4 s for the trigram search on a warm cache.
 
+### Aggregates
+
+Two materialized views answer "what does this place do" without grouping 28M establishments per request:
+
+| View                                     | Grain                       | Rows  |
+| ---------------------------------------- | --------------------------- | ----- |
+| `geo.mv_establishment_municipality_cnae` | municipality × CNAE, active | ~1.5M |
+| `geo.mv_establishment_uf_cnae`           | state × CNAE, active        | ~36k  |
+
+- Both are refreshed **inside the swap transaction** of the CNPJ publish, so the numbers and the establishments they describe change in the same commit — there is no window where a city shows yesterday's count with today's registry. The whole refresh adds a couple of minutes to a publish that already builds six indexes over 73M rows.
+- The state view is derived from the municipality view: the first two digits of an IBGE municipality code are the state code, so the national aggregate is a pass over ~1.5M rows instead of a second 73.8M row scan. Refresh order matters and follows `STATISTIC_VIEWS` in the publisher.
+- Only active establishments (`registration_status = 2`) are aggregated: the views exist to describe the market, and closed branches would inflate every ranking.
+- `GET /geo/stats/municipalities/:code` and `GET /geo/stats/ufs/:uf` read them with a single `LIMIT` and a window sum, so the total and the number of activities come in the same round trip as the ranking. Municipality headers join `geo.locality` (name, UF) and `geo.region_indicator` (population, latest reference).
+- Measured over 28.3M active establishments: 7–9 ms for São Paulo (1 254 CNAEs) and 71 ms for the state of São Paulo (8.8M active) on a cold cache.
+- A municipality the IBGE lists but that has no establishment returns zeros, not a 404; the 404 is reserved for a code that is not in the official registry.
+
 ### Query indexes
 
 The CNPJ snapshot is published through load tables and a swap, so the indexes are part of the publisher (`TARGETS`), not only of the migration: whatever the swap does not rebuild disappears on the next publish.

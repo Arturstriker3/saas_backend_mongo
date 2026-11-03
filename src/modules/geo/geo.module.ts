@@ -7,7 +7,12 @@ import { GetRegionUseCase } from './application/use-cases/get-region.use-case';
 import { ListEstablishmentsUseCase } from './application/use-cases/list-establishments.use-case';
 import { ListRegionsUseCase } from './application/use-cases/list-regions.use-case';
 import { SearchEstablishmentsUseCase } from './application/use-cases/search-establishments.use-case';
+import {
+  GetMunicipalityStatisticsUseCase,
+  GetUfStatisticsUseCase,
+} from './application/use-cases/get-statistics.use-case';
 import { ESTABLISHMENT_READ_REPOSITORY } from './domain/establishment-read.repository.interface';
+import { STATISTICS_READ_REPOSITORY } from './domain/statistics-read.repository.interface';
 import {
   COVERAGE_REPOSITORY,
   REGION_READ_REPOSITORY,
@@ -15,6 +20,7 @@ import {
 import { CoverageRepositoryPostgis } from './infrastructure/coverage.repository.postgis';
 import { EstablishmentReadRepositoryPostgis } from './infrastructure/establishment-read.repository.postgis';
 import { RegionReadRepositoryPostgis } from './infrastructure/region-read.repository.postgis';
+import { StatisticsRepositoryPostgis } from './infrastructure/statistics.repository.postgis';
 import { GeoController } from './presentation/rest/geo.controller';
 
 @Module({
@@ -27,6 +33,8 @@ import { GeoController } from './presentation/rest/geo.controller';
     { provide: COVERAGE_REPOSITORY, useExisting: CoverageRepositoryPostgis },
     EstablishmentReadRepositoryPostgis,
     { provide: ESTABLISHMENT_READ_REPOSITORY, useExisting: EstablishmentReadRepositoryPostgis },
+    StatisticsRepositoryPostgis,
+    { provide: STATISTICS_READ_REPOSITORY, useExisting: StatisticsRepositoryPostgis },
     ListRegionsUseCase,
     GetRegionUseCase,
     GetCoverageUseCase,
@@ -34,6 +42,8 @@ import { GeoController } from './presentation/rest/geo.controller';
     SearchEstablishmentsUseCase,
     GetEstablishmentUseCase,
     GetCompanyUseCase,
+    GetMunicipalityStatisticsUseCase,
+    GetUfStatisticsUseCase,
   ],
 })
 export class GeoModule {}
