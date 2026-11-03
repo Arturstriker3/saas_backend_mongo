@@ -136,6 +136,18 @@ export interface CompanyTable {
   updated_at: Timestamp;
 }
 
+export interface CompanySimplesTable {
+  cnpj_basico: string;
+  simples_option: boolean;
+  simples_since: ColumnType<string | null, string | null, string | null>;
+  simples_until: ColumnType<string | null, string | null, string | null>;
+  mei_option: boolean;
+  mei_since: ColumnType<string | null, string | null, string | null>;
+  mei_until: ColumnType<string | null, string | null, string | null>;
+  dataset_version_id: string | null;
+  updated_at: Timestamp;
+}
+
 export interface LocalityTable {
   level: 'state' | 'municipality';
   ibge_code: string;
@@ -206,6 +218,7 @@ export interface GeoDB {
   'geo.cnae_class': CnaeClassTable;
   'geo.establishment': EstablishmentTable;
   'geo.company': CompanyTable;
+  'geo.company_simples': CompanySimplesTable;
   'geo.locality': LocalityTable;
   'geo.region_indicator': RegionIndicatorTable;
   'geo.municipality_cnae_employment': MunicipalityCnaeEmploymentTable;

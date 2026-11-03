@@ -381,6 +381,24 @@ Write rules:
 - Files are `latin1`, semicolon separated and fully quoted; they are read as a stream part by part, and each part is deleted as soon as it is read. The largest part is ~2.3 GB compressed and ~7 GB extracted, so the worker needs that much free disk under `GEO_RAW_DIR`.
 - Row floors: 45M–90M establishments, 40M–95M companies and 1 200–1 500 CNAEs per version, minimum 100 000 rows per part. A full run downloads roughly 18 GB.
 
+### Simples Nacional and MEI (rfb_simples)
+
+`geo.company_simples` says, for each CNPJ root, whether the company is in the Simples Nacional and in the MEI, and since when.
+
+| Column                                             | Source                                                         |
+| -------------------------------------------------- | -------------------------------------------------------------- |
+| `cnpj_basico`                                      | `CNPJ_BASICO`                                                  |
+| `simples_option`, `simples_since`, `simples_until` | `OPCAO_SIMPLES`, `DATA_OPCAO_SIMPLES`, `DATA_EXCLUSAO_SIMPLES` |
+| `mei_option`, `mei_since`, `mei_until`             | `OPCAO_MEI`, `DATA_OPCAO_MEI`, `DATA_EXCLUSAO_MEI`             |
+
+- The option belongs to the **company**, not to the establishment: the archive has one line per CNPJ root and every branch inherits it through `cnpj_basico`.
+- The reference is the publication month (`YYYY-MM`) of the same share the CNPJ registry comes from, so the two datasets describe the same snapshot.
+- One archive for the whole country: `Simples.zip` (~310 MB compressed) carries `F.K03200$W.SIMPLES.CSV.D61010`, ~3.2 GB and **50,8M lines** in the 2026-10 edition.
+- The source publishes the history, not only the current status: a company that left the regime keeps `simples_option = false` with `simples_until` set. A company **absent** from the table never opted for either regime, which is why the endpoint returns `null` instead of `false`.
+- The snapshot replaces the previous month whole, so the publish loads `geo.company_simples_load` without indexes, builds the primary key at the end and swaps inside one transaction — the same `load-swap` helper the CNPJ publisher uses.
+- Below 40M rows the publish is refused: a truncated download would otherwise erase the country's MEI count.
+- `GET /geo/companies/:cnpjBasico` exposes it as `simples` and `mei` (`opted`, `since`, `until`).
+
 ## Serving rules
 
 - Bounding box filter before any exact spatial predicate.
@@ -403,6 +421,7 @@ Write rules:
 - The list serves **active** establishments only (`registration_status = 2`), which is what the partial index covers. Closed branches appear in the detail and in the company profile.
 - Search covers the **razão social**, not the trade name: a common word like `hortifruti` matches 20 000 trade names, and every match costs a heap fetch in the 35 GB table — 38 s on cold storage. The `establishment_trade_name_trgm` index stays for a future denormalized search table.
 - Everything is a primary key lookup or an ordered index scan; the measured times on 73.8M establishments are 34–100 ms for the detail and the company profile, 94 ms for a cold first page and ~0.4 s for the trigram search on a warm cache.
+- The company profile also carries the tax regime: `simples` and `mei` come from `geo.company_simples` by a primary key lookup and are `null` when the company never opted.
 
 ### Aggregates
 
@@ -479,7 +498,7 @@ The v3 malhas API covers states and municipalities only. Districts, neighborhood
 | `mdic_comex`         | exports and imports                 | município × SH4            | monthly | bulk   | stable    | open, cite MDIC     |
 | `senatran_frota`     | vehicles, income proxy              | município                  | monthly | bulk   | semi      | open                |
 
-`ibge_cempre` is the first dataset of this wave in production — see **Formal employment (CEMPRE)** for what it stores and how it is extracted.
+`ibge_cempre` and `rfb_simples` are in production in this wave — see **Formal employment (CEMPRE)** and **Simples Nacional and MEI (rfb_simples)** for what they store and how they are extracted.
 
 ### Wave 3 — differentiation
 

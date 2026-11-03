@@ -19,6 +19,7 @@ import { migration017Statistics } from './017_statistics';
 import { migration018Cempre } from './018_cempre';
 import { migration019CnaeClass } from './019_cnae_class';
 import { migration020MunicipalityEmployment } from './020_municipality_employment';
+import { migration021CompanySimples } from './021_company_simples';
 
 export const geoMigrations: Record<string, Migration> = {
   '001_initial': migration001Initial,
@@ -41,4 +42,5 @@ export const geoMigrations: Record<string, Migration> = {
   '018_cempre': migration018Cempre,
   '019_cnae_class': migration019CnaeClass,
   '020_municipality_employment': migration020MunicipalityEmployment,
+  '021_company_simples': migration021CompanySimples,
 };

@@ -24,8 +24,9 @@ services:
     image: postgis/postgis:18-3.6
     container_name: saas_postgis
     # Headroom for the ingestion sorts and index builds (it peaks around 3.5 GiB
-    # while loading the CNPJ parts); below this the bulk upserts run out of memory.
-    mem_limit: 4g
+    # while loading the CNPJ parts and goes past 4 GiB on the 50M-row Simples
+    # snapshot, which killed a backend under the previous limit).
+    mem_limit: 6g
     ports:
       - '5432:5432'
     volumes:

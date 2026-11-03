@@ -7,6 +7,7 @@ import type {
   CompanyInput,
   EstablishmentRecord,
   MunicipalityInput,
+  SimplesInput,
 } from '../../domain/establishment.types';
 import { downloadTo, extractArchive, readLines } from '../archive/geo-zip.util';
 import { joinQuotedLines, splitCsvLine } from '../csv/csv.util';
@@ -15,6 +16,7 @@ import {
   toCompanyInput,
   toEstablishmentRecord,
   toMunicipalityInput,
+  toSimplesInput,
 } from './rfb-cnpj.mapper';
 
 const RFB_CNPJ_HOST = 'https://arquivos.receitafederal.gov.br';
@@ -31,8 +33,11 @@ const CNAE_FILE = /^cnaes\.zip$/i;
 const MUNICIPALITY_FILE = /^municipios\.zip$/i;
 const ESTABLISHMENT_FILE = /^estabelecimentos(\d+)\.zip$/i;
 const COMPANY_FILE = /^empresas(\d+)\.zip$/i;
+const SIMPLES_FILE = /^simples\.zip$/i;
 /** RFB data files carry no extension: `K3241.K03200Y9.D61010.ESTABELE`. */
 const DATA_ENTRY = /\.(estabele|cnaecsv|emprecsv|municcsv)$/i;
+/** The Simples archive ships `F.K03200$W.SIMPLES.CSV.D61010`. */
+const SIMPLES_ENTRY = /\.simples\.csv\./i;
 const HREF = /<d:href>([^<]+)<\/d:href>/g;
 const LATIN1 = 'latin1';
 
@@ -46,6 +51,12 @@ export interface RfbCnpjSourceSet {
   establishmentUrls: string[];
   /** Company archives ordered by part number. */
   companyUrls: string[];
+}
+
+export interface RfbSimplesSource {
+  /** Publication month, as `YYYY-MM`. */
+  reference: string;
+  url: string;
 }
 
 interface ShareEntry {
@@ -106,6 +117,21 @@ export class RfbCnpjClient {
     };
   }
 
+  /**
+   * Locates the Simples archive of the newest month. It is one file for the whole
+   * country: the option belongs to the company, not to the establishment.
+   * @returns The month and the archive URL.
+   */
+  async findSimples(): Promise<RfbSimplesSource> {
+    const reference = await this.findNewestReference();
+    const entries = await this.list(`${RFB_CNPJ_WEBDAV_URL}/${reference}`);
+
+    const simples = entries.find((entry) => SIMPLES_FILE.test(entry.name));
+    if (!simples) throw new Error(`RFB ${reference} has no Simples.zip; the month is incomplete`);
+
+    return { reference, url: simples.url };
+  }
+
   async *readMunicipalities(url: string, workDir: string): AsyncGenerator<MunicipalityInput> {
     for await (const record of joinQuotedLines(this.csvLines(url, workDir))) {
       if (record.trim() === '') continue;
@@ -139,6 +165,15 @@ export class RfbCnpjClient {
 
       const establishment = this.mapRecord(url, record, toEstablishmentRecord);
       if (establishment) yield establishment;
+    }
+  }
+
+  async *readSimples(url: string, workDir: string): AsyncGenerator<SimplesInput> {
+    for await (const record of joinQuotedLines(this.csvLines(url, workDir, SIMPLES_ENTRY))) {
+      if (record.trim() === '') continue;
+
+      const simples = this.mapRecord(url, record, toSimplesInput);
+      if (simples) yield simples;
     }
   }
 
@@ -178,13 +213,17 @@ export class RfbCnpjClient {
     return parts.map((part) => part.url);
   }
 
-  private async *csvLines(url: string, workDir: string): AsyncGenerator<string> {
+  private async *csvLines(
+    url: string,
+    workDir: string,
+    entry: RegExp = DATA_ENTRY,
+  ): AsyncGenerator<string> {
     await mkdir(workDir, { recursive: true });
 
     try {
       const zipPath = join(workDir, 'source.zip');
       await downloadTo(url, zipPath, this.authHeaders());
-      const dataPath = await this.extractSingleDataFile(zipPath, workDir, url);
+      const dataPath = await this.extractSingleDataFile(zipPath, workDir, url, entry);
 
       this.logger.log(`Reading ${basename(url)}`);
       yield* readLines(dataPath, LATIN1);
@@ -198,8 +237,9 @@ export class RfbCnpjClient {
     zipPath: string,
     workDir: string,
     url: string,
+    entry: RegExp,
   ): Promise<string> {
-    const paths = await extractArchive(zipPath, workDir, (name) => DATA_ENTRY.test(name));
+    const paths = await extractArchive(zipPath, workDir, (name) => entry.test(name));
     const [dataPath] = paths;
 
     if (paths.length !== 1 || !dataPath) {

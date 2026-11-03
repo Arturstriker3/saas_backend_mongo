@@ -3,6 +3,7 @@ import type {
   CompanyInput,
   EstablishmentRecord,
   MunicipalityInput,
+  SimplesInput,
 } from '../../domain/establishment.types';
 
 /** The RFB `Estabelecimentos` layout has 30 columns and no header. */
@@ -13,6 +14,9 @@ export const COMPANY_FIELD_COUNT = 7;
 
 /** The RFB `Municipios` layout has 2 columns: code and name. */
 export const MUNICIPALITY_FIELD_COUNT = 2;
+
+/** The RFB `Simples` layout has 7 columns and no header. */
+export const SIMPLES_FIELD_COUNT = 7;
 
 const CNAE_FIELD_COUNT = 2;
 const DIGITS_ONLY = /^\d+$/;
@@ -170,6 +174,36 @@ export function toCompanyInput(fields: string[]): CompanyInput | null {
 }
 
 /**
+ * Maps a `Simples.csv` line into the Simples and MEI option of the company.
+ * @param fields - Semicolon separated fields of the RFB layout.
+ * @returns The option, or null for a blank line.
+ */
+export function toSimplesInput(fields: string[]): SimplesInput | null {
+  if (fields.length < SIMPLES_FIELD_COUNT) {
+    throw new Error(
+      `RFB simples layout changed; expected ${SIMPLES_FIELD_COUNT} fields, ` +
+        `received ${fields.length}`,
+    );
+  }
+
+  const companyCode = fields[0].trim().toUpperCase();
+  if (companyCode === '') return null;
+  if (!COMPANY_CODE.test(companyCode)) {
+    throw new Error(`RFB simples has an unexpected company code: "${companyCode}"`);
+  }
+
+  return {
+    companyCode,
+    simplesOption: toFlag(fields[1]),
+    simplesSince: toIsoDate(fields[2]),
+    simplesUntil: toIsoDate(fields[3]),
+    meiOption: toFlag(fields[4]),
+    meiSince: toIsoDate(fields[5]),
+    meiUntil: toIsoDate(fields[6]),
+  };
+}
+
+/**
  * IBGE code of a state, used to narrow the municipality match.
  * @param uf - Two-letter state code.
  * @returns The 2-digit IBGE code, or null for an unknown UF (`EX` included).
@@ -210,9 +244,14 @@ function toUf(raw: string | undefined): string | null {
   return value;
 }
 
+/** The RFB publishes `S` for an option the company took and `N` otherwise. */
+function toFlag(raw: string | undefined): boolean {
+  return (raw ?? '').trim().toUpperCase() === 'S';
+}
+
 function toCnaeCode(raw: string | undefined): string | null {
   const value = (raw ?? '').trim();
-  if (value === '' || value === '0000000' || !DIGITS_ONLY.test(value)) return null;
+  if (value === '0000000' || !CNAE_CODE.test(value)) return null;
   return value;
 }
 

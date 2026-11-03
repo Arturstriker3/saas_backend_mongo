@@ -12,6 +12,7 @@ import {
   type EstablishmentDetail,
   type EstablishmentPage,
   type EstablishmentSummary,
+  type TaxRegimeView,
 } from '../domain/establishment-view.types';
 
 interface EstablishmentRow {
@@ -44,6 +45,12 @@ interface CompanyRow {
   legalNatureCode: string | null;
   sizeCode: string | null;
   capitalSocial: number | null;
+  simplesOption: boolean | null;
+  simplesSince: string | null;
+  simplesUntil: string | null;
+  meiOption: boolean | null;
+  meiSince: string | null;
+  meiUntil: string | null;
   establishmentCount: number;
   activeEstablishmentCount: number;
   datasetKey: string | null;
@@ -123,6 +130,12 @@ export class EstablishmentReadRepositoryPostgis implements EstablishmentReadRepo
              company.legal_nature_code AS "legalNatureCode",
              company.size_code AS "sizeCode",
              company.capital_social::float8 AS "capitalSocial",
+             simples.simples_option AS "simplesOption",
+             simples.simples_since::text AS "simplesSince",
+             simples.simples_until::text AS "simplesUntil",
+             simples.mei_option AS "meiOption",
+             simples.mei_since::text AS "meiSince",
+             simples.mei_until::text AS "meiUntil",
              (SELECT count(*)
                 FROM geo.establishment AS branch
                WHERE branch.cnpj_basico = company.cnpj_basico)::int AS "establishmentCount",
@@ -134,6 +147,8 @@ export class EstablishmentReadRepositoryPostgis implements EstablishmentReadRepo
              version.reference AS "reference",
              version.published_at AS "publishedAt"
       FROM geo.company AS company
+      LEFT JOIN geo.company_simples AS simples
+        ON simples.cnpj_basico = company.cnpj_basico
       LEFT JOIN geo.dataset_version AS version
         ON version.id = company.dataset_version_id
       WHERE company.cnpj_basico = ${cnpjBasico}
@@ -158,6 +173,8 @@ export class EstablishmentReadRepositoryPostgis implements EstablishmentReadRepo
       legalNatureCode: company.legalNatureCode,
       sizeCode: company.sizeCode,
       capitalSocial: company.capitalSocial,
+      simples: toRegime(company.simplesOption, company.simplesSince, company.simplesUntil),
+      mei: toRegime(company.meiOption, company.meiSince, company.meiUntil),
       establishmentCount: company.establishmentCount,
       activeEstablishmentCount: company.activeEstablishmentCount,
       establishments: rows.map(toSummary),
@@ -297,4 +314,22 @@ function toEvidence(row: Pick<EstablishmentRow, 'datasetKey' | 'reference' | 'pu
   return row.datasetKey === null
     ? null
     : { datasetKey: row.datasetKey, reference: row.reference, publishedAt: row.publishedAt };
+}
+
+/**
+ * A company absent from the Simples snapshot never opted for the regime, so the
+ * null option becomes a null regime instead of a false one.
+ * @param option - Current option published by the RFB.
+ * @param since - Date the option was taken.
+ * @param until - Date the company left.
+ * @returns The regime, or null when the company never opted.
+ */
+function toRegime(
+  option: boolean | null,
+  since: string | null,
+  until: string | null,
+): TaxRegimeView | null {
+  if (option === null) return null;
+
+  return { opted: option, since, until };
 }

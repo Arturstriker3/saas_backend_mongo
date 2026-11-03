@@ -254,6 +254,21 @@ class EstablishmentPageResponseDTO {
   nextCursor!: string | null;
 }
 
+class TaxRegimeResponseDTO {
+  @ApiProperty({ example: true })
+  opted!: boolean;
+
+  @ApiProperty({ example: '2019-01-01', nullable: true })
+  since!: string | null;
+
+  @ApiProperty({
+    example: null,
+    nullable: true,
+    description: 'Set when the company left the regime',
+  })
+  until!: string | null;
+}
+
 class CompanyResponseDTO {
   @ApiProperty({ example: '12345678' })
   cnpjBasico!: string;
@@ -269,6 +284,20 @@ class CompanyResponseDTO {
 
   @ApiProperty({ example: 5000, nullable: true })
   capitalSocial!: number | null;
+
+  @ApiProperty({
+    type: TaxRegimeResponseDTO,
+    nullable: true,
+    description: 'Null when the company never opted for Simples Nacional',
+  })
+  simples!: TaxRegimeResponseDTO | null;
+
+  @ApiProperty({
+    type: TaxRegimeResponseDTO,
+    nullable: true,
+    description: 'Null when the company never opted for MEI',
+  })
+  mei!: TaxRegimeResponseDTO | null;
 
   @ApiProperty({ example: 3 })
   establishmentCount!: number;

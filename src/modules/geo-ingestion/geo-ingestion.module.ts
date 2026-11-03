@@ -13,6 +13,7 @@ import { INGESTION_SCHEDULE_REPOSITORY } from './domain/ingestion-schedule.repos
 import { LOCALITY_PUBLISHER } from './domain/locality-publisher.interface';
 import { REGION_INDICATOR_PUBLISHER } from './domain/region-indicator-publisher.interface';
 import { SECTOR_INDICATOR_PUBLISHER } from './domain/sector-indicator-publisher.interface';
+import { SIMPLES_PUBLISHER } from './domain/simples-publisher.interface';
 import { IbgeCensoAdapter } from './infrastructure/adapters/ibge-censo.adapter';
 import { CnefeAdapter } from './infrastructure/adapters/cnefe.adapter';
 import { IbgeCempreAdapter } from './infrastructure/adapters/ibge-cempre.adapter';
@@ -20,6 +21,7 @@ import { IbgeEstimativasAdapter } from './infrastructure/adapters/ibge-estimativ
 import { IbgeLocalidadesAdapter } from './infrastructure/adapters/ibge-localidades.adapter';
 import { IbgeMalhaAdapter } from './infrastructure/adapters/ibge-malha.adapter';
 import { RfbCnpjAdapter } from './infrastructure/adapters/rfb-cnpj.adapter';
+import { RfbSimplesAdapter } from './infrastructure/adapters/rfb-simples.adapter';
 import {
   IbgeBairroAdapter,
   IbgeSetorAdapter,
@@ -39,6 +41,7 @@ import { EmploymentPublisherPostgis } from './infrastructure/publisher/employmen
 import { LocalityPublisherPostgis } from './infrastructure/publisher/locality.publisher.postgis';
 import { RegionIndicatorPublisherPostgis } from './infrastructure/publisher/region-indicator.publisher.postgis';
 import { SectorIndicatorPublisherPostgis } from './infrastructure/publisher/sector-indicator.publisher.postgis';
+import { SimplesPublisherPostgis } from './infrastructure/publisher/simples.publisher.postgis';
 import { RfbCnpjClient } from './infrastructure/rfb/rfb-cnpj.client';
 import { RfbMunicipalityResolver } from './infrastructure/rfb/rfb-municipality.resolver';
 import { GeoShapefileSource } from './infrastructure/shapefile/geo-shapefile.source';
@@ -64,6 +67,8 @@ import { GeoShapefileSource } from './infrastructure/shapefile/geo-shapefile.sou
     { provide: ADDRESS_PUBLISHER, useExisting: AddressPublisherPostgis },
     EmploymentPublisherPostgis,
     { provide: EMPLOYMENT_PUBLISHER, useExisting: EmploymentPublisherPostgis },
+    SimplesPublisherPostgis,
+    { provide: SIMPLES_PUBLISHER, useExisting: SimplesPublisherPostgis },
     IbgeMalhaClient,
     IbgeCensoClient,
     CnefeClient,
@@ -81,6 +86,7 @@ import { GeoShapefileSource } from './infrastructure/shapefile/geo-shapefile.sou
     CnefeAdapter,
     IbgeCempreAdapter,
     RfbCnpjAdapter,
+    RfbSimplesAdapter,
     {
       provide: DATASET_ADAPTERS,
       useFactory: (
@@ -93,6 +99,7 @@ import { GeoShapefileSource } from './infrastructure/shapefile/geo-shapefile.sou
         cnefe: CnefeAdapter,
         cempre: IbgeCempreAdapter,
         cnpj: RfbCnpjAdapter,
+        simples: RfbSimplesAdapter,
       ): DatasetAdapter[] => [
         malha,
         bairro,
@@ -103,6 +110,7 @@ import { GeoShapefileSource } from './infrastructure/shapefile/geo-shapefile.sou
         cnefe,
         cempre,
         cnpj,
+        simples,
       ],
       inject: [
         IbgeMalhaAdapter,
@@ -114,6 +122,7 @@ import { GeoShapefileSource } from './infrastructure/shapefile/geo-shapefile.sou
         CnefeAdapter,
         IbgeCempreAdapter,
         RfbCnpjAdapter,
+        RfbSimplesAdapter,
       ],
     },
     GeoIngestionMetrics,

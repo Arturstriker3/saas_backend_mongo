@@ -52,3 +52,19 @@ export interface CompanyInput {
   sizeCode: string | null;
   capitalSocial: number | null;
 }
+
+/**
+ * Simples Nacional and MEI option of one company. The option belongs to the
+ * CNPJ root, not to the establishment, and the dates carry the history: a
+ * company whose option is now `false` but has `until` set left the regime.
+ */
+export interface SimplesInput {
+  companyCode: string;
+  simplesOption: boolean;
+  /** `YYYY-MM-DD`; null when the source publishes zeros. */
+  simplesSince: string | null;
+  simplesUntil: string | null;
+  meiOption: boolean;
+  meiSince: string | null;
+  meiUntil: string | null;
+}

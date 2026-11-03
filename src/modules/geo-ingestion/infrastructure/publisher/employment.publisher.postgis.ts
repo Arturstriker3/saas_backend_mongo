@@ -13,6 +13,7 @@ import type {
   EmploymentRecord,
   EmploymentTotalRecord,
 } from '../../domain/employment.types';
+import { openStagingVersion } from './load-swap';
 
 /** ~5 000 rows per statement keeps the jsonb payload small and the upsert cheap. */
 const CHUNK_SIZE = 5_000;
@@ -28,7 +29,7 @@ export class EmploymentPublisherPostgis implements EmploymentPublisher {
 
   async begin(input: EmploymentVersionInput): Promise<string> {
     return this.db.transaction().execute(async (trx) => {
-      const versionId = await this.upsertVersion(trx, input);
+      const versionId = await openStagingVersion(trx, input);
       await this.upsertClasses(trx, versionId, input.categories);
 
       return versionId;
@@ -216,32 +217,6 @@ export class EmploymentPublisherPostgis implements EmploymentPublisher {
         WHERE id = ${versionId}::bigint AND dataset_key = ${datasetKey} AND status = 'staging'
       `.execute(trx);
     });
-  }
-
-  /** Opens the version as `staging`, invisible to readers until finalized. */
-  private async upsertVersion(
-    trx: Transaction<GeoDB>,
-    input: EmploymentVersionInput,
-  ): Promise<string> {
-    const created = await sql<{ id: string }>`
-      INSERT INTO geo.dataset_version
-        (dataset_key, reference, status, extracted_at, methodology, source_url, checksum, row_count)
-      VALUES
-        (${input.datasetKey}, ${input.reference}, 'staging', ${input.extractedAt},
-         ${input.methodology}, ${input.sourceUrl}, '', 0)
-      ON CONFLICT (dataset_key, reference) DO UPDATE
-        SET status = 'staging',
-            extracted_at = EXCLUDED.extracted_at,
-            published_at = NULL,
-            methodology = EXCLUDED.methodology,
-            source_url = EXCLUDED.source_url
-      RETURNING id
-    `.execute(trx);
-
-    const versionId = created.rows[0]?.id;
-    if (!versionId) throw new Error('Could not create the dataset version');
-
-    return versionId;
   }
 
   /** The fact table references the class, so the taxonomy is written first. */

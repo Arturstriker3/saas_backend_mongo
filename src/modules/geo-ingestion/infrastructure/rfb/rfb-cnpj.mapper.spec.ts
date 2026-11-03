@@ -4,10 +4,12 @@ import {
   COMPANY_FIELD_COUNT,
   ESTABLISHMENT_FIELD_COUNT,
   normalizeName,
+  SIMPLES_FIELD_COUNT,
   toCnaeInput,
   toCompanyInput,
   toEstablishmentRecord,
   toMunicipalityInput,
+  toSimplesInput,
   ufToIbgeCode,
 } from './rfb-cnpj.mapper';
 
@@ -226,5 +228,50 @@ describe('toCnaeInput', () => {
 
   test('rejects a code that is not 7 digits', () => {
     expect(() => toCnaeInput(['472110', 'Padaria'])).toThrow('unexpected code');
+  });
+});
+
+describe('toSimplesInput', () => {
+  test('maps a real, fully quoted line from the source', () => {
+    expect(
+      toSimplesInput(
+        splitCsvLine('"00000006";"N";"20180101";"20191231";"N";"00000000";"00000000"'),
+      ),
+    ).toEqual({
+      companyCode: '00000006',
+      simplesOption: false,
+      simplesSince: '2018-01-01',
+      simplesUntil: '2019-12-31',
+      meiOption: false,
+      meiSince: null,
+      meiUntil: null,
+    });
+  });
+
+  test('keeps the MEI option of a company still in the regime', () => {
+    const fields = new Array<string>(SIMPLES_FIELD_COUNT).fill('');
+    Object.assign(fields, {
+      0: '12345678',
+      1: 'S',
+      2: '20220315',
+      3: '00000000',
+      4: 'S',
+      5: '20220315',
+      6: '00000000',
+    });
+
+    expect(toSimplesInput(fields)).toEqual({
+      companyCode: '12345678',
+      simplesOption: true,
+      simplesSince: '2022-03-15',
+      simplesUntil: null,
+      meiOption: true,
+      meiSince: '2022-03-15',
+      meiUntil: null,
+    });
+  });
+
+  test('rejects a line whose layout drifted', () => {
+    expect(() => toSimplesInput(['12345678', 'N'])).toThrow('layout changed');
   });
 });

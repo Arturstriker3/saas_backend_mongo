@@ -53,12 +53,25 @@ export interface EstablishmentPage {
   nextCursor: string | null;
 }
 
+/** One tax regime the company joined, as the Receita Federal publishes it. */
+export interface TaxRegimeView {
+  /** Whether the company is in the regime today. */
+  opted: boolean;
+  since: string | null;
+  /** Set when the company left the regime; null while it is still in. */
+  until: string | null;
+}
+
 export interface CompanyProfile {
   cnpjBasico: string;
   legalName: string;
   legalNatureCode: string | null;
   sizeCode: string | null;
   capitalSocial: number | null;
+  /** Null when the company never opted for Simples Nacional. */
+  simples: TaxRegimeView | null;
+  /** Null when the company never opted for MEI. */
+  mei: TaxRegimeView | null;
   establishmentCount: number;
   activeEstablishmentCount: number;
   establishments: EstablishmentSummary[];
